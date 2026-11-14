@@ -6,7 +6,7 @@ using UnityEngine.UI;
 namespace FannyIn2Trom
 {
     /// <summary>
-    /// ÉPREUVE 2 — La barre du métro (en mode portrait sur iPhone).
+    /// ÉPREUVE 2 — La barre du métro (gros plan, téléphone à l'horizontale).
     /// La main est posée sur la barre : le joueur la fait glisser de haut en bas
     /// le plus vite possible pour remplir le "Frottomètre".
     /// </summary>
@@ -15,7 +15,6 @@ namespace FannyIn2Trom
         public override string Title { get { return "La barre du métro"; } }
         public override string Instruction { get { return "Frotte la main sur la barre :\nglisse ton doigt de haut en bas,\nTRÈS TRÈS VITE !"; } }
         protected override float BaseTimeLimit { get { return 12f; } }
-        public override bool WantsPortrait { get { return true; } }
 
         // Réglages
         const float RubGain = 0.000085f;  // remplissage par unité de déplacement du doigt
@@ -35,8 +34,6 @@ namespace FannyIn2Trom
         Text gaugeText, germText, stationText;
         readonly List<RectTransform> lights = new List<RectTransform>();
         int stuckGerms;
-
-        bool Portrait { get { return Size.y > Size.x; } }
 
         protected override void Build()
         {
@@ -58,20 +55,21 @@ namespace FannyIn2Trom
                     lights.Add(l.rectTransform);
                 }
                 var bg = UIKit.Image("Decor", shakeRoot, bgSprite, new Vector2(W, H) * bgScale, Vector2.zero);
-                barX = Portrait ? 0f : -Size.x * 0.04f;
+                barX = -Size.x * 0.22f;
                 barWidth = 78f;
                 UIKit.Image("Barre", shakeRoot, Art.MetalBar, new Vector2(barWidth, Size.y + 100), new Vector2(barX, 0));
                 bg.name = "Decor";
             }
             else
             {
-                // Décor fourni : on cadre pour que la barre soit au centre de l'écran (si possible)
+                // Décor fourni : gros plan sur la barre, cadré à droite de la Fanny déjà dessinée dans l'image
+                float visibleW = W * (1f - Art.MetroBakedFannyRight);
+                bgScale = Mathf.Max(bgScale, Size.x / visibleW);
                 var bg = UIKit.Image("Decor", shakeRoot, bgSprite, new Vector2(W, H) * bgScale, Vector2.zero);
-                float poleX = (Art.MetroPoleX - 0.5f) * W * bgScale;
-                float margin = Mathf.Max(0f, (W * bgScale - Size.x) * 0.5f);
-                float offset = Mathf.Clamp(-poleX, -margin, margin);
-                bg.rectTransform.anchoredPosition = new Vector2(offset, 0f);
-                barX = poleX + offset;
+                float leftImg = W - Size.x / bgScale;               // bord gauche visible (pixels image)
+                const float centerY = 0.56f;                        // hauteur de l'image placée au centre de l'écran
+                bg.rectTransform.anchoredPosition = new Vector2(Size.x * 0.5f - W * bgScale * 0.5f, (centerY - 0.5f) * H * bgScale);
+                barX = (Art.MetroPoleX * W - leftImg) * bgScale - Size.x * 0.5f;
                 barWidth = Art.MetroPoleWidth * W * bgScale;
             }
 
@@ -95,7 +93,7 @@ namespace FannyIn2Trom
                 img.rectTransform.pivot = Art.HandGripPivot;
                 img.rectTransform.anchoredPosition = Vector2.zero;
                 minY = -Size.y * 0.5f + 120f;
-                maxY = Size.y * 0.5f - (Portrait ? 420f : 200f);
+                maxY = Size.y * 0.5f - 200f;
             }
             handY = Mathf.Lerp(minY, maxY, 0.4f);
 
@@ -104,16 +102,17 @@ namespace FannyIn2Trom
 
             // Fanny (portrait qui réagit)
             var face = Art.FannyVisage;
-            float frameSize = Portrait ? 300f : 460f;
-            Vector2 framePos = Portrait ? new Vector2(-right + 190f, top - 560f) : new Vector2(-right + 330f, -150f);
+            float frameSize = 440f;
+            // à droite de la barre (le bras arrive par la gauche)
+            Vector2 framePos = new Vector2(Mathf.Max(barX + 420f, right - 560f), -90f);
             var frame = UIKit.Image("Cadre", shakeRoot, Art.RoundedRect, new Vector2(frameSize, frameSize), framePos, new Color(0.12f, 0.16f, 0.32f, 0.9f));
             frame.type = Image.Type.Sliced;
             fannyFace = UIKit.Image("Fanny", frame.transform, face, UIKit.SizeForHeight(face, frameSize * 0.9f), new Vector2(0, -frameSize * 0.02f));
             UIKit.Text("Nom", frame.transform, "Fanny", 40, Color.white, new Vector2(400, 60), new Vector2(0, frameSize * 0.5f + 32f));
 
             // Frottomètre (à droite)
-            float gaugeH = Portrait ? Size.y * 0.42f : 620f;
-            var gauge = UIKit.Image("Frottometre", shakeRoot, Art.RoundedRect, new Vector2(110, gaugeH), new Vector2(right - (Portrait ? 110f : 260f), Portrait ? -80f : -60f), new Color(0, 0, 0, 0.7f));
+            float gaugeH = 600f;
+            var gauge = UIKit.Image("Frottometre", shakeRoot, Art.RoundedRect, new Vector2(110, gaugeH), new Vector2(right - 190f, -80f), new Color(0, 0, 0, 0.7f));
             gauge.type = Image.Type.Sliced;
             gaugeFill = UIKit.Image("Niveau", gauge.transform, Art.RoundedRect, Vector2.zero, Vector2.zero, new Color(0.3f, 0.9f, 0.3f));
             gaugeFill.type = Image.Type.Sliced;
@@ -125,10 +124,10 @@ namespace FannyIn2Trom
 
             // Bandeau "Prochaine station"
             float bannerW = Mathf.Min(980f, Size.x - 60f);
-            var banner = UIKit.Image("Bandeau", shakeRoot, Art.RoundedRect, new Vector2(bannerW, 90), new Vector2(0, top - (Portrait ? 290f : 160f)), new Color(0.06f, 0.12f, 0.33f, 0.95f));
+            var banner = UIKit.Image("Bandeau", shakeRoot, Art.RoundedRect, new Vector2(bannerW, 90), new Vector2(0, top - 160f), new Color(0.06f, 0.12f, 0.33f, 0.95f));
             banner.type = Image.Type.Sliced;
             stationText = UIKit.Text("Station", banner.transform, "", 38, Color.white, new Vector2(bannerW - 20f, 80), Vector2.zero, TextAnchor.MiddleCenter, false);
-            germText = UIKit.Text("Microbes", shakeRoot, "Microbes ramassés : 0", 44, new Color(0.7f, 1f, 0.4f), new Vector2(Mathf.Min(900f, Size.x - 40f), 60), new Vector2(Portrait ? 120f : 0f, -top + 60f));
+            germText = UIKit.Text("Microbes", shakeRoot, "Microbes ramassés : 0", 44, new Color(0.7f, 1f, 0.4f), new Vector2(Mathf.Min(900f, Size.x - 40f), 60), new Vector2(framePos.x, -top + 60f));
             NextStation();
         }
 
@@ -222,7 +221,7 @@ namespace FannyIn2Trom
             Sfx.Play(Sfx.Squish);
             Sfx.Vibrate();
             stationText.text = "Terminus : tout le monde descend !";
-            Pop("MAIN BIEN CRADE !", new Vector2(0, 120), new Color(0.6f, 1f, 0.3f), Portrait ? 80 : 100);
+            Pop("MAIN BIEN CRADE !", new Vector2(0, 120), new Color(0.6f, 1f, 0.3f), 100);
             for (float e = 0f; e < 1.1f; e += Time.deltaTime)
             {
                 hands.localScale = Vector3.one * (1f + Mathf.Sin(e * 20f) * 0.03f);

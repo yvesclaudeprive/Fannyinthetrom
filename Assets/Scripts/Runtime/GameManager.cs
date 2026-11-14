@@ -227,6 +227,7 @@ namespace FannyIn2Trom
         {
             var root = UIKit.Stretch(UIKit.Rect("Titre", overlayLayer));
             Vector2 size = CanvasSize;
+            Sfx.PlayMusic(Sfx.MusicBretagne);
 
             var bgSprite = Art.BgBretagne;
             var bg = UIKit.Image("Fond", root, bgSprite, size, Vector2.zero);
@@ -256,6 +257,7 @@ namespace FannyIn2Trom
                 title.rectTransform.localScale = Vector3.one * (1f + Mathf.Sin(t * 2.2f) * 0.03f);
                 yield return null;
             }
+            Sfx.StopMusic();
             Destroy(root.gameObject);
         }
 

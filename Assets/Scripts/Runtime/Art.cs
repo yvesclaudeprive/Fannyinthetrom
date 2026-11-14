@@ -22,6 +22,26 @@ namespace FannyIn2Trom
         public static Sprite FannyProfil { get { return Load("fanny_profil", null); } }
         public static Sprite FannyDos { get { return Load("fanny_dos", null); } }
         public static Sprite FannyVisage { get { return Load("fanny_visage", null); } }
+        /// <summary>Étapes de marche de profil (fanny_marche_1..3). Absentes => la vue de profil fixe est utilisée.</summary>
+        public static Sprite[] FannyMarche
+        {
+            get
+            {
+                if (marche == null)
+                {
+                    var list = new List<Sprite>();
+                    for (int i = 1; i <= 8; i++)
+                    {
+                        var s = Load("fanny_marche_" + i, null);
+                        if (s == null) break;
+                        list.Add(s);
+                    }
+                    marche = list.ToArray();
+                }
+                return marche;
+            }
+        }
+        static Sprite[] marche;
         /// <summary>Optionnel : visage dégoûté. Si absent, le visage normal est teinté en vert.</summary>
         public static Sprite FannyVisageBeurk { get { return Load("fanny_visage_beurk", null); } }
         public static Sprite BgMetro { get { return Load("bg_metro", MakeMetroWall); } }
@@ -37,6 +57,10 @@ namespace FannyIn2Trom
         /// <summary>bg_metro : position (x) et largeur de la barre verticale, en fraction de la largeur.</summary>
         public const float MetroPoleX = 0.6766f, MetroPoleWidth = 0.0225f;
         /// <summary>main_barre : point de contact des doigts sur la barre (x,y vers le haut) et largeur de l'image en "largeurs de barre".</summary>
+        /// <summary>bg_metro : bord droit de la Fanny déjà dessinée dans le décor (on cadre à droite de ce point).</summary>
+        public const float MetroBakedFannyRight = 0.552f;
+        /// <summary>fanny_visage : position de la bouche (fractions, y vers le haut).</summary>
+        public static readonly Vector2 VisageMouth = new Vector2(0.4986f, 0.452f);
         public static readonly Vector2 HandGripPivot = new Vector2(0.9656f, 0.9526f);
         public const float HandWidthInBars = 14.87f;
 

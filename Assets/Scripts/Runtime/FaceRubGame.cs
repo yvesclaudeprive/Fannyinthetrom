@@ -12,7 +12,7 @@ namespace FannyIn2Trom
     public class FaceRubGame : MiniGame
     {
         public override string Title { get { return "Sur le visage !"; } }
-        public override string Instruction { get { return "Les mains pleines de microbes...\nfrotte-les PARTOUT sur le visage de Fanny !"; } }
+        public override string Instruction { get { return "Les mains pleines de microbes...\nfrotte-les PARTOUT sur le visage de Fanny\njusqu'à vider sa barre de vie !"; } }
         protected override float BaseTimeLimit { get { return 11f; } }
 
         // Zone du visage dans l'image "fanny_visage" (fractions, y vers le haut).
@@ -31,8 +31,9 @@ namespace FannyIn2Trom
         bool hasLast;
         Image progressFill;
         Text progressText;
-        float beurkTimer, wobble;
-        bool switchedFace;
+        float beurkTimer, wobble, ouilleTimer;
+        bool touching;
+        Sprite normalFace, grimaceFace;
 
         protected override void Build()
         {
@@ -44,6 +45,8 @@ namespace FannyIn2Trom
             faceSize = UIKit.SizeForHeight(sprite, Size.y * 0.86f);
             facePos = new Vector2(0, -40);
             face = UIKit.Image("Visage", Root, sprite, faceSize, facePos);
+            normalFace = sprite;
+            grimaceFace = Art.FannyVisageBeurk;
 
             // calque de "microbes" peint par-dessus le visage
             texH = Mathf.RoundToInt(TexW * faceSize.y / faceSize.x);
@@ -68,15 +71,16 @@ namespace FannyIn2Trom
             paintImage.texture = paintTex;
             paintImage.raycastTarget = false;
 
-            // jauge de contamination
-            var bar = UIKit.Image("Jauge", Root, Art.RoundedRect, new Vector2(700, 50), new Vector2(0, -Size.y * 0.5f + 70), new Color(0, 0, 0, 0.7f));
+            // barre de vie de Fanny (en haut à gauche)
+            var bar = UIKit.Image("BarreDeVie", Root, Art.RoundedRect, new Vector2(620, 54), new Vector2(-Size.x * 0.5f + 560f, Size.y * 0.5f - 95f), new Color(0, 0, 0, 0.75f));
             bar.type = Image.Type.Sliced;
-            progressFill = UIKit.Image("Niveau", bar.transform, Art.RoundedRect, Vector2.zero, Vector2.zero, new Color(0.5f, 0.9f, 0.2f));
+            progressFill = UIKit.Image("Vie", bar.transform, Art.RoundedRect, Vector2.zero, Vector2.zero, new Color(0.3f, 0.9f, 0.3f));
             progressFill.type = Image.Type.Sliced;
-            UIKit.Anchor(progressFill.rectTransform, 0, 0, 0, 1);
-            progressFill.rectTransform.offsetMin = new Vector2(6, 6);
-            progressFill.rectTransform.offsetMax = new Vector2(0, -6);
-            progressText = UIKit.Text("Texte", bar.transform, "Visage contaminé : 0 %", 38, Color.white, new Vector2(700, 60), new Vector2(0, 55));
+            UIKit.Anchor(progressFill.rectTransform, 0, 0, 1, 1);
+            progressFill.rectTransform.offsetMin = new Vector2(7, 7);
+            progressFill.rectTransform.offsetMax = new Vector2(-7, -7);
+            UIKit.Image("Coeur", bar.transform, Art.Heart, new Vector2(80, 80), new Vector2(-330f, 0f));
+            progressText = UIKit.Text("Texte", bar.transform, "Fanny : 100 %", 36, Color.white, new Vector2(600, 60), new Vector2(0, 0));
 
             // main(s)
             if (!Art.HandGripIsPlaceholder)
@@ -99,6 +103,24 @@ namespace FannyIn2Trom
         protected override void Tick(float dt)
         {
             wobble += dt;
+            Vector2 rel = Pointer.Pos - facePos;
+            bool onFace = Pointer.Held && Mathf.Abs(rel.x) < faceSize.x * 0.36f && Mathf.Abs(rel.y) < faceSize.y * 0.46f;
+            if (!Locked && onFace && !touching)
+            {
+                // "Hmpf !" dès qu'on lui touche le visage
+                Sfx.Play(Sfx.Ouille, 1f, Random.Range(0.9f, 1.2f));
+                ouilleTimer = 0.7f;
+            }
+            touching = !Locked && onFace;
+            if (touching)
+            {
+                ouilleTimer -= dt;
+                if (ouilleTimer <= 0f)
+                {
+                    Sfx.Play(Sfx.Ouille, 0.7f, Random.Range(0.85f, 1.3f));
+                    ouilleTimer = Random.Range(0.6f, 1.0f);
+                }
+            }
             if (!Locked && Pointer.Held)
             {
                 Vector2 p = Pointer.Pos;
@@ -124,22 +146,32 @@ namespace FannyIn2Trom
 
             float cov = zoneCells > 0 ? coveredCells / (float)zoneCells : 0f;
             float shown = Mathf.Clamp01(cov / Goal);
-            progressFill.rectTransform.anchorMax = new Vector2(Mathf.Max(0.02f, shown), 1f);
-            progressText.text = "Visage contaminé : " + Mathf.RoundToInt(shown * 100f) + " %";
+            float life = 1f - shown;
+            progressFill.rectTransform.anchorMax = new Vector2(Mathf.Max(0.03f, life), 1f);
+            progressFill.color = life > 0.5f ? Color.Lerp(new Color(1f, 0.85f, 0.2f), new Color(0.3f, 0.9f, 0.3f), (life - 0.5f) * 2f)
+                                             : Color.Lerp(new Color(0.95f, 0.2f, 0.2f), new Color(1f, 0.85f, 0.2f), life * 2f);
+            progressText.text = "Fanny : " + Mathf.RoundToInt(life * 100f) + " %";
 
-            // réactions de Fanny
-            face.color = Color.Lerp(Color.white, new Color(0.8f, 1f, 0.72f), shown);
-            face.rectTransform.anchoredPosition = facePos + new Vector2(Mathf.Sin(wobble * 37f) * 6f * shown, 0f);
-            if (!switchedFace && shown > 0.5f && Art.FannyVisageBeurk != null)
+            // réactions de Fanny : grimace dès qu'on la touche (et quand elle est bien malade)
+            if (!Locked)
             {
-                face.sprite = Art.FannyVisageBeurk;
-                switchedFace = true;
+                bool grimace = touching || shown > 0.75f;
+                Sprite wanted = grimace && grimaceFace != null ? grimaceFace : normalFace;
+                if (face.sprite != wanted) face.sprite = wanted;
+                float squeeze = touching ? 0.035f : 0f;
+                if (grimaceFace == null) squeeze *= 2f;
+                face.rectTransform.localScale = new Vector3(1f + squeeze, 1f - squeeze, 1f);
+            }
+            if (!Locked)
+            {
+                face.color = Color.Lerp(Color.white, new Color(0.8f, 1f, 0.72f), shown);
+                face.rectTransform.anchoredPosition = facePos + new Vector2(Mathf.Sin(wobble * 37f) * (6f * shown + (touching ? 5f : 0f)), 0f);
             }
             if (!Locked && beurkTimer <= 0f)
             {
                 beurkTimer = Random.Range(0.9f, 1.6f);
                 string[] words = { "Beurk !", "Pouah !", "Berk !!", "Bah non !", "Au secours !" };
-                Sfx.Play(Sfx.Squish, 0.8f, Random.Range(0.9f, 1.2f));
+                Sfx.Play(Sfx.Beurk, 0.9f, Random.Range(0.92f, 1.15f));
                 Pop(words[Random.Range(0, words.Length)], facePos + new Vector2(Random.value < 0.5f ? -430f : 430f, Random.Range(0f, 260f)), new Color(0.65f, 1f, 0.35f), 70);
             }
 
@@ -202,6 +234,9 @@ namespace FannyIn2Trom
             Locked = true;
             Sfx.Play(Sfx.Squish);
             Sfx.Vibrate();
+            if (grimaceFace != null) face.sprite = grimaceFace;
+            face.rectTransform.localScale = Vector3.one;
+            progressText.text = "Fanny : K.O.";
             Pop("CONTAMINATION TOTALE !", new Vector2(0, Size.y * 0.3f), new Color(0.6f, 1f, 0.3f), 95);
             // quelques microbes qui dansent sur le visage
             for (int i = 0; i < 10; i++)
@@ -211,8 +246,98 @@ namespace FannyIn2Trom
                 g.rectTransform.localScale = Vector3.zero;
                 StartCoroutine(GrowGerm(g.rectTransform, i * 0.05f));
             }
-            yield return new WaitForSeconds(1.3f);
+            StartCoroutine(HandsAway());
+            yield return new WaitForSeconds(0.7f);
+
+            // haut-le-cœur : elle gonfle les joues...
+            Sfx.Play(Sfx.Ouille, 0.8f, 0.75f);
+            for (float e = 0f; e < 0.7f; e += Time.deltaTime)
+            {
+                float k = Mathf.Sin(e * 22f);
+                face.rectTransform.localScale = new Vector3(1f + 0.03f * k, 1f - 0.02f * k, 1f);
+                face.color = Color.Lerp(face.color, new Color(0.7f, 1f, 0.6f), Time.deltaTime * 3f);
+                yield return null;
+            }
+            face.rectTransform.localScale = Vector3.one;
+
+            // ... et VOMIT !
+            yield return VomitRoutine();
             Finish(true, 400 + Mathf.RoundToInt(TimeLeft * 60f));
+        }
+
+        IEnumerator HandsAway()
+        {
+            Image[] hands = { arm, leftHand, rightHand };
+            for (float e = 0f; e < 0.5f; e += Time.deltaTime)
+            {
+                foreach (var h in hands)
+                    if (h != null) h.rectTransform.anchoredPosition += new Vector2(-900f, -1400f) * Time.deltaTime;
+                yield return null;
+            }
+        }
+
+        class Drop { public RectTransform rt; public Vector2 v; }
+
+        IEnumerator VomitRoutine()
+        {
+            Vector2 mouth = facePos + Vector2.Scale(Art.VisageMouth - new Vector2(0.5f, 0.5f), faceSize);
+            float floorY = -Size.y * 0.5f + 60f;
+            Color[] colors =
+            {
+                new Color(0.62f, 0.72f, 0.18f), new Color(0.78f, 0.74f, 0.25f),
+                new Color(0.50f, 0.62f, 0.15f), new Color(0.85f, 0.80f, 0.40f)
+            };
+            var puddle = UIKit.Image("Flaque", Root, Art.Circle, Vector2.zero, new Vector2(mouth.x, floorY), new Color(0.62f, 0.7f, 0.2f, 0.95f));
+            var drops = new System.Collections.Generic.List<Drop>();
+            float puddleW = 0f;
+            bool splashed = false;
+
+            Sfx.Play(Sfx.Vomit);
+            Sfx.Vibrate();
+            Pop("BLEUUAARGH !", mouth + new Vector2(430f, 180f), new Color(0.7f, 1f, 0.3f), 96);
+
+            const float spew = 1.3f, total = 2.3f;
+            float spawnAcc = 0f;
+            for (float e = 0f; e < total; e += Time.deltaTime)
+            {
+                float dt = Time.deltaTime;
+                // jet de vomi depuis la bouche
+                if (e < spew)
+                {
+                    spawnAcc += dt * 110f;
+                    while (spawnAcc >= 1f)
+                    {
+                        spawnAcc -= 1f;
+                        float size = Random.Range(26f, 66f);
+                        var img = UIKit.Image("Vomi", Root, Art.Circle, new Vector2(size * 1.3f, size), mouth + new Vector2(Random.Range(-25f, 25f), 0f),
+                            colors[Random.Range(0, colors.Length)]);
+                        drops.Add(new Drop { rt = img.rectTransform, v = new Vector2(Random.Range(-160f, 160f), Random.Range(-420f, 80f)) });
+                    }
+                    // la tête qui suit le jet
+                    face.rectTransform.anchoredPosition = facePos + new Vector2(Mathf.Sin(e * 30f) * 8f, -Mathf.Sin(e * 9f) * 10f);
+                }
+                for (int i = drops.Count - 1; i >= 0; i--)
+                {
+                    var d = drops[i];
+                    d.v.y -= 2600f * dt;
+                    d.rt.anchoredPosition += d.v * dt;
+                    d.rt.localRotation = Quaternion.Euler(0, 0, Mathf.Atan2(d.v.y, d.v.x) * Mathf.Rad2Deg);
+                    if (d.rt.anchoredPosition.y <= floorY)
+                    {
+                        // la flaque grandit
+                        puddleW = Mathf.Min(820f, puddleW + 9f);
+                        if (!splashed) { Sfx.Play(Sfx.Splash); splashed = true; }
+                        Destroy(d.rt.gameObject);
+                        drops.RemoveAt(i);
+                    }
+                }
+                puddle.rectTransform.sizeDelta = new Vector2(puddleW, puddleW * 0.17f);
+                yield return null;
+            }
+            foreach (var d in drops) Destroy(d.rt.gameObject);
+            face.rectTransform.anchoredPosition = facePos;
+            Pop("Pauvre Fanny...", new Vector2(0, -Size.y * 0.25f), Color.white, 70);
+            yield return new WaitForSeconds(0.6f);
         }
 
         IEnumerator GrowGerm(RectTransform g, float delay)

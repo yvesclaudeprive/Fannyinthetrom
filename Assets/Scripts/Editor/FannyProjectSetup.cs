@@ -61,7 +61,7 @@ namespace FannyIn2Trom.EditorTools
             {
                 EditorUtility.DisplayDialog("Fanny in 2 Trom",
                     "Projet configuré !\n\n• Scène : " + ScenePath + "\n• Identifiant : " + BundleId +
-                    "\n• Orientation : paysage (épreuve 2 en portrait)\n\nAppuyez sur Play (ou menu Fanny > Jouer) pour tester.", "Super");
+                    "\n• Orientation : paysage\n\nAppuyez sur Play (ou menu Fanny > Jouer) pour tester.", "Super");
             }
         }
 
@@ -108,8 +108,8 @@ namespace FannyIn2Trom.EditorTools
             PlayerSettings.SetApplicationIdentifier(BuildTargetGroup.iOS, BundleId);
 #endif
             PlayerSettings.defaultInterfaceOrientation = UIOrientation.AutoRotation;
-            // le portrait doit être autorisé ici (épreuve 2) ; le jeu verrouille l'orientation lui-même
-            PlayerSettings.allowedAutorotateToPortrait = true;
+            // jeu entièrement à l'horizontale
+            PlayerSettings.allowedAutorotateToPortrait = false;
             PlayerSettings.allowedAutorotateToPortraitUpsideDown = false;
             PlayerSettings.allowedAutorotateToLandscapeLeft = true;
             PlayerSettings.allowedAutorotateToLandscapeRight = true;

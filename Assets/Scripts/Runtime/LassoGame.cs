@@ -18,10 +18,11 @@ namespace FannyIn2Trom
 
         // --- Réglages (coordonnées en pixels de l'image du décor, origine en haut à gauche)
         const float RefW = 2576f, RefH = 1438f;     // taille de l'image fournie
-        const float TopCrop = 40f;                   // on garde le haut (barres du HUD dessinées)
+        const float HudBottom = 190f;                // bas des barres du HUD dessinées dans le décor
         const float WalkMinX = 170f, WalkMaxX = 2420f;
-        const float WalkMinY = 1075f, WalkMaxYRef = 1200f; // position des pieds (trottoir → route)
-        const float HeightFar = 470f, HeightNear = 580f; // taille de Fanny selon la profondeur
+        const float WalkMinY = 1150f, WalkMaxYRef = 1330f; // position des pieds : sur la route
+        const float HeightFar = 500f, HeightNear = 600f; // taille de Fanny selon la profondeur
+        const float StridePx = 85f;                  // distance parcourue par étape de marche
         const float FlightTime = 0.38f;
 
         // Barres du HUD dessinées dans le décor (fractions de l'image, y vers le haut)
@@ -37,7 +38,7 @@ namespace FannyIn2Trom
         Text lassoText;
 
         Vector2 feet, target;          // en pixels image
-        float speed, pauseTimer, retargetTimer, sprintTimer, walkPhase;
+        float speed, pauseTimer, retargetTimer, sprintTimer, walkPhase, walkDist;
         int lassosLeft, lassosMax;
         bool throwing, caught;
 
@@ -49,9 +50,11 @@ namespace FannyIn2Trom
 
             scale = Mathf.Max(Size.x / imgW, Size.y / imgH);
             float overflow = imgH * scale - Size.y;
-            topCrop = Mathf.Clamp(TopCrop * imgH / RefH * scale, 0f, Mathf.Max(0f, overflow));
-            // les pieds de Fanny doivent rester visibles en bas de l'écran
-            WalkMaxY = Mathf.Min(WalkMaxYRef, (Size.y + topCrop) / scale - 30f);
+            // on cadre en bas pour voir la route où marche Fanny
+            topCrop = Mathf.Max(0f, overflow);
+            // si le haut de l'image est rogné, les barres dessinées ne sont plus visibles : HUD standard
+            if (topCrop / scale > HudBottom * imgH / RefH - 60f) bakedHud = false;
+            WalkMaxY = Mathf.Min(WalkMaxYRef, (Size.y + topCrop) / scale - 25f);
 
             var bg = UIKit.Image("Decor", Root, bgSprite, new Vector2(imgW, imgH) * scale, Vector2.zero,
                 bgSprite != null ? Color.white : new Color(0.55f, 0.7f, 0.85f));
@@ -89,6 +92,7 @@ namespace FannyIn2Trom
             rope.gameObject.SetActive(false);
             loop.gameObject.SetActive(false);
 
+            Sfx.PlayMusic(Sfx.MusicBretagne);
             feet = new Vector2(Random.value < 0.5f ? 600f : 1900f, Random.Range(WalkMinY, WalkMaxY));
             NewTarget();
             PlaceFanny();
@@ -107,6 +111,11 @@ namespace FannyIn2Trom
         {
             lassoText.text = "Lassos : " + new string('O', lassosLeft) + new string('·', lassosMax - lassosLeft);
             if (blueFill != null) blueFill.rectTransform.anchorMax = new Vector2((float)lassosLeft / lassosMax, 1f);
+        }
+
+        void OnDestroy()
+        {
+            Sfx.StopMusic();
         }
 
         protected override void OnTimerChanged(float fraction)
@@ -132,7 +141,8 @@ namespace FannyIn2Trom
 
         void NewTarget()
         {
-            target = new Vector2(Random.Range(WalkMinX, WalkMaxX), Random.Range(WalkMinY, WalkMaxY));
+            // elle se promène surtout le long de la rue (gauche/droite)
+            target = new Vector2(Random.Range(WalkMinX, WalkMaxX), Mathf.Clamp(feet.y + Random.Range(-70f, 70f), WalkMinY, WalkMaxY));
             // pas trop près : on veut qu'elle traverse l'écran
             if (Mathf.Abs(target.x - feet.x) < 400f) target.x = feet.x + (target.x < feet.x ? -600f : 600f);
             target.x = Mathf.Clamp(target.x, WalkMinX, WalkMaxX);
@@ -158,6 +168,7 @@ namespace FannyIn2Trom
             }
             else feet += d.normalized * step;
             walkPhase += dt * s / 55f;
+            walkDist += step;
         }
 
         float HeightAt(float feetY)
@@ -184,6 +195,13 @@ namespace FannyIn2Trom
                 if (Mathf.Abs(d.x) > Mathf.Abs(d.y) * 1.2f)
                 {
                     view = Art.FannyProfil;
+                    var steps = Art.FannyMarche;
+                    if (steps.Length >= 3)
+                    {
+                        // cycle : pas, passage, pas inverse, passage
+                        int[] cycle = { 0, 1, 2, 1 };
+                        view = steps[cycle[Mathf.FloorToInt(walkDist / StridePx) % 4]];
+                    }
                     flip = d.x > 0f ? -1f : 1f; // le profil fourni regarde vers la gauche
                 }
                 else view = d.y > 0f ? Art.FannyFace : Art.FannyDos;
@@ -191,13 +209,14 @@ namespace FannyIn2Trom
             if (view == null) view = Art.FannyFace;
             if (fanny.sprite != view) fanny.sprite = view;
 
-            float bob = moving ? Mathf.Abs(Mathf.Sin(walkPhase)) * h * 0.018f : 0f;
+            float k = walkDist / StridePx;
+            float bob = moving ? (0.5f - 0.5f * Mathf.Cos(Mathf.PI * k)) * h * 0.02f : 0f;
             fanny.rectTransform.sizeDelta = UIKit.SizeForHeight(view, h);
             fanny.rectTransform.anchoredPosition = ImgToWorld(feet) + new Vector2(0f, bob);
             if (!Locked)
             {
                 fanny.rectTransform.localScale = new Vector3(flip, 1f, 1f);
-                fanny.rectTransform.localRotation = Quaternion.Euler(0, 0, moving ? Mathf.Sin(walkPhase) * 2.5f : 0f);
+                fanny.rectTransform.localRotation = Quaternion.Euler(0, 0, moving ? Mathf.Sin(Mathf.PI * k * 0.5f) * 1.5f : 0f);
             }
             shadow.rectTransform.sizeDelta = new Vector2(h * 0.32f, h * 0.05f);
             shadow.rectTransform.anchoredPosition = ImgToWorld(feet) + new Vector2(0f, h * 0.005f);
@@ -307,17 +326,40 @@ namespace FannyIn2Trom
                 SetRope(from, loop.rectTransform.anchoredPosition);
                 yield return null;
             }
-            // elle se débat
+            // elle se tortille dans le lasso !
             Vector2 basePos = fanny.rectTransform.anchoredPosition;
-            for (float e = 0f; e < 0.8f; e += Time.deltaTime)
+            string[] cris = { "Au secours !", "Lâchez-moi !", "Hééé !" };
+            int criIndex = 0;
+            float nextYelp = 0f;
+            const float struggle = 1.8f;
+            for (float e = 0f; e < struggle; e += Time.deltaTime)
             {
-                float wobble = Mathf.Sin(e * 45f) * 14f;
-                fanny.rectTransform.anchoredPosition = basePos + new Vector2(wobble, 0f);
-                fanny.rectTransform.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(e * 30f) * 4f);
-                loop.rectTransform.anchoredPosition = waist + new Vector2(wobble, 0f);
+                float wig = Mathf.Sin(e * 26f);
+                float hop = Mathf.Abs(Mathf.Sin(e * 13f)) * h * 0.05f;
+                float wobble = wig * 22f;
+                fanny.rectTransform.anchoredPosition = basePos + new Vector2(wobble, hop);
+                fanny.rectTransform.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(e * 19f) * 11f);
+                // elle se tord : écrasée / étirée, et se retourne d'un côté puis de l'autre
+                float squash = 1f + Mathf.Sin(e * 31f) * 0.07f;
+                float side = Mathf.Sin(e * 7f) >= 0f ? 1f : -1f;
+                fanny.rectTransform.localScale = new Vector3(side * (2f - squash), squash, 1f);
+                loop.rectTransform.anchoredPosition = waist + new Vector2(wobble, hop);
+                loop.rectTransform.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(e * 19f) * 8f);
                 SetRope(from, loop.rectTransform.anchoredPosition);
+                if (e >= nextYelp)
+                {
+                    Sfx.Play(Sfx.Yelp, 0.9f, Random.Range(0.9f, 1.25f));
+                    if (criIndex < cris.Length && e > 0.2f)
+                    {
+                        Pop(cris[criIndex], TorsoScreen() + new Vector2(criIndex % 2 == 0 ? -260f : 260f, h * 0.45f), Color.white, 64);
+                        criIndex++;
+                    }
+                    nextYelp = e + Random.Range(0.32f, 0.5f);
+                }
                 yield return null;
             }
+            fanny.rectTransform.localScale = Vector3.one;
+            fanny.rectTransform.localRotation = Quaternion.identity;
             // on la tire vers soi !
             Vector2 worldStart = fanny.rectTransform.anchoredPosition;
             for (float e = 0f; e < 0.6f; e += Time.deltaTime)
