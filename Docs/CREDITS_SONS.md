@@ -18,6 +18,10 @@ Aucune attribution n'est obligatoire ; elle est donnée ici par courtoisie.
 | `lasso` (montage de 4 « swish ») | OpenGameArt : Swishes Sound Pack | — | CC0 |
 | `squish`, `splash` | OpenGameArt : 8 Wet Squish/Slurp Impacts | — | CC0 |
 | `vomi` (montage : rot + liquide + éclaboussures) | OpenGameArt : 80 CC0 Creature SFX, 40 CC0 Water/Splash/Slime SFX, 25 CC0 Mud SFX | — | CC0 |
+| `couic_1..3` (souris), `croc`, `mache_1..2` | OpenGameArt : 80 CC0 Creature SFX (cute, eat), accordés | — | CC0 |
+| `slurp` | OpenGameArt : 8 Wet Squish/Slurp Impacts | — | CC0 |
+| `chasse` (chasse d'eau) | OpenGameArt : 40 CC0 Water/Splash/Slime SFX | — | CC0 |
+| `musique_ascenseur` | Air original façon bossa d'ascenseur (FluidR3 GM : piano électrique, vibraphone, basse) | — | Composition originale |
 | `metro_ambiance` (montage) | OpenGameArt : 30 CC0 SFX Loops + Kenney Impact Sounds | — | CC0 |
 | `musique_bretagne` | Air original composé pour le jeu (style an-dro), joué avec la banque de sons FluidR3 GM (bombarde, cornemuse, caisse claire, grosse caisse), avec le refrain traditionnel « Ils ont des chapeaux ronds, vive la Bretagne ! » chanté en chœur (synthèse vocale MBROLA fr1/fr4 accordée sur une mélodie originale) | — | Libre : paroles traditionnelles (domaine public), mélodie et arrangement originaux, banque FluidR3 sous licence MIT |
 

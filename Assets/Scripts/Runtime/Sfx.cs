@@ -25,6 +25,9 @@ namespace FannyIn2Trom
         /// <summary>Variantes (vrais sons libres de droits, CC0) : une est tirée au hasard à chaque fois.</summary>
         public static AudioClip[] Yelps, Ouilles, Beurks, Glous, Rubs, Steps, Clinks;
         public static AudioClip Scream, Breath, Laugh, GlouGlou;
+        /// <summary>Épreuves souris / frotti : roucoulement, chasse d'eau, croc, slurp, musique d'ascenseur.</summary>
+        public static AudioClip Coo, Flush, Crunch, Slurp, MusicAscenseur;
+        public static AudioClip[] Squeaks, Chews;
         public static AudioClip[] Burps;
         /// <summary>Voix de l'annonceur.</summary>
         public static AudioClip Voice3, Voice2, Voice1, VoiceGo, VoiceGameOver, VoiceRecord, VoiceLevel;
@@ -130,6 +133,15 @@ namespace FannyIn2Trom
             Laugh = Load("rire");
             GlouGlou = Load("glouglou") ?? Glou;
             Burps = Variants("rot", Squish);
+            // roucoulement de pigeon : "rou-rou" grave et tremblé
+            Coo = Load("pigeon") ?? VoiceClip("pigeon", 0.7f, t => 260f - 30f * t, new[] { 300f, 700f, 2300f },
+                t => Env(t, 0.7f, 0.03f) * (0.5f + 0.5f * Mathf.Sin(t * 2f * Mathf.PI * 9f)), t => 0.08f);
+            Flush = Load("chasse") ?? Splash;
+            Crunch = Load("croc") ?? Squish;
+            Slurp = Load("slurp") ?? Squish;
+            MusicAscenseur = Load("musique_ascenseur");
+            Squeaks = Variants("couic", Yelp);
+            Chews = Variants("mache", Squish);
             Voice3 = Load("voix_3"); Voice2 = Load("voix_2"); Voice1 = Load("voix_1"); VoiceGo = Load("voix_go");
             VoiceGameOver = Load("voix_gameover"); VoiceRecord = Load("voix_record"); VoiceLevel = Load("voix_niveau");
         }

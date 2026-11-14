@@ -197,7 +197,7 @@ namespace FannyIn2Trom
             hud.SetScore(score);
             hud.SetLives(lives);
 
-            var stages = new Type[] { typeof(LassoGame), typeof(ChouchenGame), typeof(MetroBarGame), typeof(FaceRubGame) };
+            var stages = new Type[] { typeof(LassoGame), typeof(ChouchenGame), typeof(MouseGame), typeof(MetroBarGame), typeof(FaceRubGame) };
             while (lives > 0)
             {
                 hud.SetLevel(level);

@@ -23,7 +23,8 @@ namespace FannyIn2Trom
         const float WalkMinY = 1150f, WalkMaxYRef = 1330f; // position des pieds : sur la route
         const float HeightFar = 500f, HeightNear = 600f; // taille de Fanny selon la profondeur
         const float StridePx = 85f;                  // distance parcourue par étape de marche
-        const float FlightTime = 0.38f;
+        const float WindUp = 0.3f;       // le lasso tournoie avant d'être lancé
+        const float FlightTime = 0.7f;   // vol en cloche : il monte haut puis retombe sur elle
 
         // Barres du HUD dessinées dans le décor (fractions de l'image, y vers le haut)
         static readonly Rect OrangeBar = new Rect(0.0823f, 0.9096f, 0.1655f, 0.0202f);
@@ -258,13 +259,29 @@ namespace FannyIn2Trom
             loop.gameObject.SetActive(true);
 
             Vector2 from = Origin;
+            // 1) le lasso tournoie au-dessus de la tête du lanceur (en bas de l'écran)
+            Vector2 hub = new Vector2(0f, -Size.y * 0.5f + 170f);
+            for (float e = 0f; e < WindUp; e += Time.deltaTime)
+            {
+                float a = e * 22f;
+                Vector2 p = hub + new Vector2(Mathf.Cos(a) * 120f, Mathf.Sin(a) * 35f);
+                loop.rectTransform.anchoredPosition = p;
+                loop.rectTransform.localRotation = Quaternion.identity;
+                loop.rectTransform.localScale = new Vector3(0.8f, 0.35f, 1f);
+                SetRope(from, p);
+                yield return null;
+            }
+            // 2) lancer en cloche : il monte haut, puis retombe à plat sur la cible
+            Vector2 start = loop.rectTransform.anchoredPosition;
+            float apex = Mathf.Max(260f, (Size.y * 0.5f - Mathf.Max(start.y, aim.y)) * 0.8f);
             for (float e = 0f; e < FlightTime; e += Time.deltaTime)
             {
                 float k = e / FlightTime;
-                Vector2 p = Vector2.Lerp(from, aim, 1f - (1f - k) * (1f - k)) + Vector2.up * Mathf.Sin(k * Mathf.PI) * 140f;
+                Vector2 p = Vector2.Lerp(start, aim, k) + Vector2.up * (4f * k * (1f - k)) * apex;
                 loop.rectTransform.anchoredPosition = p;
-                loop.rectTransform.localRotation = Quaternion.Euler(0, 0, e * 900f);
-                loop.rectTransform.localScale = Vector3.one * Mathf.Lerp(0.5f, 1.15f, k);
+                loop.rectTransform.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(e * 18f) * 10f);
+                // la boucle s'ouvre en montant, puis s'aplatit en retombant (vue en perspective)
+                loop.rectTransform.localScale = new Vector3(Mathf.Lerp(0.8f, 1.2f, k), Mathf.Lerp(0.6f, 0.4f, k), 1f);
                 SetRope(from, p);
                 yield return null;
             }
@@ -272,7 +289,7 @@ namespace FannyIn2Trom
             SetRope(from, aim);
 
             float h = HeightAt(feet.y) * scale;
-            float radius = h * 0.26f + 30f;
+            float radius = h * 0.2f + 20f;      // plus précis qu'avant
             if (!Locked && Vector2.Distance(aim, TorsoScreen()) < radius)
             {
                 yield return Caught();

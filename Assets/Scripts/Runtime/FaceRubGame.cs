@@ -12,7 +12,7 @@ namespace FannyIn2Trom
     public class FaceRubGame : MiniGame
     {
         public override string Title { get { return "Sur le visage !"; } }
-        public override string Instruction { get { return "Les mains pleines de microbes...\nfrotte-les PARTOUT sur le visage de Fanny\njusqu'à vider sa barre de vie !"; } }
+        public override string Instruction { get { return "Les mains pleines de microbes " + MetroBarGame.LastTargetOf + "…\nfrotte-les PARTOUT sur le visage de Fanny\njusqu'à vider sa barre de vie !"; } }
         protected override float BaseTimeLimit { get { return 11f; } }
 
         // Zone du visage dans l'image "fanny_visage" (fractions, y vers le haut).

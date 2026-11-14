@@ -6,8 +6,9 @@ Jeu iPhone réalisé avec **Unity**. Fanny est capturée au lasso en Bretagne, p
 |---|---------|-------|
 | 1 | **Le lasso breton**. Fanny marche dans la rue bretonne, sur fond d'air breton. Attrapée, elle se tortille en criant | Toucher l'écran pour lancer le lasso (il faut viser là où elle va être) |
 | 2 | **Le chouchen**. Une rangée de verres à shot au comptoir de la crêperie. Fanny boit très vite : plus on sert vite, plus elle est bourrée (joues rouges, hoquet, vision double, la salle tangue)… et à 100 % d'ivresse, elle vomit | Taper sur les verres (un tapotement = un demi-verre) ou garder le doigt dessus pour verser. Elle boit cul sec, tête renversée, « glou glou glou », puis rote |
-| 3 | **La barre du métro**. Gros plan sur la main posée sur la barre | Glisser le doigt de haut en bas très vite pour remplir le « Frottomètre » |
-| 4 | **Sur le visage !** Elle grimace et râle dès qu'on la touche ; sa barre de vie descend… puis elle vomit | Frotter partout sur le visage de Fanny jusqu'à vider sa barre de vie |
+| 3 | **La souris**. On choisit une souris bien moche (pelée, pustuleuse, borgne…), on la tient par la queue (elle se balance) et on la guide dans la bouche de Fanny qui bouge la tête. CROC : elle la mâche lentement, la queue dépasse de sa bouche… puis slurp et rot | Tenir et déplacer la souris |
+| 4 | **Que va-t-elle frotter ?** Au choix : la barre du métro, la barre de l'ascenseur (avec sa musique), le siège des toilettes publiques ou un pigeon parisien | Frotter très vite pour remplir le Frottomètre |
+| 5 | **Sur le visage !** Elle grimace et râle dès qu'on la touche ; sa barre de vie descend… puis elle vomit | Frotter partout sur le visage de Fanny jusqu'à vider sa barre de vie |
 
 Le jeu se joue entièrement **à l'horizontale**.
 
@@ -115,8 +116,10 @@ Assets/Scripts/Runtime/
   MiniGame.cs      base commune des épreuves (chrono, victoire/défaite, effets)
   LassoGame.cs     épreuve 1 : le lasso breton
   ChouchenGame.cs  épreuve 2 : le chouchen
-  MetroBarGame.cs  épreuve 3 : la barre du métro
-  FaceRubGame.cs   épreuve 4 : sur le visage
+  MouseGame.cs     épreuve 3 : la souris
+  MetroBarGame.cs  épreuve 4 : que va-t-elle frotter ? (métro, ascenseur, toilettes, pigeon)
+  ArtGross.cs      dessins des souris, du pigeon, de l'ascenseur et des toilettes
+  FaceRubGame.cs   épreuve 5 : sur le visage
   Art.cs           chargement des images + repères (position de la barre, de la main…)
   Painter.cs       dessin des visuels provisoires
   Sfx.cs           bruitages synthétisés

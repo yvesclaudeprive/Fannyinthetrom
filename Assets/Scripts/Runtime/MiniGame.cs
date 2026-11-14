@@ -25,6 +25,7 @@ namespace FannyIn2Trom
         protected float TimeLimit;
         protected float TimeLeft;
         protected bool Locked;           // vrai pendant les animations de fin
+        protected bool PauseTimer;       // vrai pendant un écran de choix (le chrono ne tourne pas)
 
         public void Setup(RectTransform root, Vector2 size, float difficulty)
         {
@@ -45,7 +46,7 @@ namespace FannyIn2Trom
             while (!Done)
             {
                 float dt = Time.deltaTime;
-                if (!Locked)
+                if (!Locked && !PauseTimer)
                 {
                     TimeLeft -= dt;
                     if (TimeLeft <= 0f)
