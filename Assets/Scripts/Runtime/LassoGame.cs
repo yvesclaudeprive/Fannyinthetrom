@@ -345,28 +345,28 @@ namespace FannyIn2Trom
             string[] cris = { "Au secours !", "Lâchez-moi !", "Hééé !" };
             int criIndex = 0;
             float nextYelp = 0f;
-            const float struggle = 1.8f;
+            const float struggle = 2.2f;
             for (float e = 0f; e < struggle; e += Time.deltaTime)
             {
                 if (poses.Length > 0)
                 {
-                    var pose = poses[Mathf.FloorToInt(e * 9f) % poses.Length];
+                    var pose = poses[Mathf.FloorToInt(e * 12f) % poses.Length];
                     if (fanny.sprite != pose)
                     {
                         fanny.sprite = pose;
                         fanny.rectTransform.sizeDelta = UIKit.SizeForHeight(pose, h * pose.rect.height / faceH);
                     }
                 }
-                float wig = Mathf.Sin(e * 26f);
-                float hop = Mathf.Abs(Mathf.Sin(e * 13f)) * h * 0.05f;
-                float wobble = wig * 22f;
-                fanny.rectTransform.anchoredPosition = basePos + new Vector2(wobble, hop);
-                fanny.rectTransform.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(e * 17f) * 8f);
-                // elle se tord : écrasée / étirée, et se retourne d'un côté puis de l'autre
-                float squash = 1f + Mathf.Sin(e * 31f) * 0.05f;
-                fanny.rectTransform.localScale = new Vector3(2f - squash, squash, 1f);
-                loop.rectTransform.anchoredPosition = waist + new Vector2(wobble, hop);
-                loop.rectTransform.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(e * 19f) * 8f);
+                // le lasso la soulève : elle se retrouve en l'air et pédale des pieds
+                float lift = Mathf.SmoothStep(0f, 1f, Mathf.Min(1f, e / 0.35f)) * h * 0.32f + Mathf.Sin(e * 9f) * h * 0.025f;
+                float swing = Mathf.Sin(e * 5.5f);
+                Vector2 off = new Vector2(swing * 28f, lift);
+                fanny.rectTransform.anchoredPosition = basePos + off;
+                fanny.rectTransform.localRotation = Quaternion.Euler(0, 0, swing * 9f);
+                fanny.rectTransform.localScale = Vector3.one;
+                shadow.rectTransform.sizeDelta = new Vector2(h * 0.32f, h * 0.05f) * (1f - 0.45f * (lift / (h * 0.32f)));
+                loop.rectTransform.anchoredPosition = waist + off;
+                loop.rectTransform.localRotation = Quaternion.Euler(0, 0, swing * 9f);
                 SetRope(from, loop.rectTransform.anchoredPosition);
                 if (e >= nextYelp)
                 {

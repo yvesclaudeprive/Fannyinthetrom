@@ -53,6 +53,12 @@ namespace FannyIn2Trom
         public static Sprite VisageGrimace1 { get { return Load("fanny_visage_grimace_1", null); } }
         public static Sprite VisageBeurkBouche { get { return Load("fanny_visage_beurk_bouche", null); } }
         public static Sprite VisageBeurkYeuxFermes { get { return Load("fanny_visage_beurk_yeux_fermes", null); } }
+        /// <summary>Joues gonflées (haut-le-cœur).</summary>
+        public static Sprite VisageJoues { get { return Load("fanny_visage_joues", null); } }
+        /// <summary>Bouche grande ouverte, pleine de vomi.</summary>
+        public static Sprite VisageVomi { get { return Load("fanny_visage_vomi", null); } }
+        /// <summary>Elle boit : yeux fermés, bouche ouverte.</summary>
+        public static Sprite VisageBoit { get { return Load("fanny_visage_boit", null); } }
 
         static Sprite[] LoadSeq(string prefix)
         {

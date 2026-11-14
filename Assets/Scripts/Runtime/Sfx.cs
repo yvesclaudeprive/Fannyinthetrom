@@ -24,7 +24,8 @@ namespace FannyIn2Trom
         public static AudioClip MetroAmbiance;
         /// <summary>Variantes (vrais sons libres de droits, CC0) : une est tirée au hasard à chaque fois.</summary>
         public static AudioClip[] Yelps, Ouilles, Beurks, Glous, Rubs, Steps, Clinks;
-        public static AudioClip Scream, Breath, Laugh;
+        public static AudioClip Scream, Breath, Laugh, GlouGlou;
+        public static AudioClip[] Burps;
         /// <summary>Voix de l'annonceur.</summary>
         public static AudioClip Voice3, Voice2, Voice1, VoiceGo, VoiceGameOver, VoiceRecord, VoiceLevel;
 
@@ -127,6 +128,8 @@ namespace FannyIn2Trom
             Scream = Load("au_secours");
             Breath = Load("souffle");
             Laugh = Load("rire");
+            GlouGlou = Load("glouglou") ?? Glou;
+            Burps = Variants("rot", Squish);
             Voice3 = Load("voix_3"); Voice2 = Load("voix_2"); Voice1 = Load("voix_1"); VoiceGo = Load("voix_go");
             VoiceGameOver = Load("voix_gameover"); VoiceRecord = Load("voix_record"); VoiceLevel = Load("voix_niveau");
         }

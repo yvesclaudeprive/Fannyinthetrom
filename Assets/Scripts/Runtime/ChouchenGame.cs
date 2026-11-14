@@ -13,15 +13,16 @@ namespace FannyIn2Trom
     public class ChouchenGame : MiniGame
     {
         public override string Title { get { return "Le chouchen"; } }
-        public override string Instruction { get { return "Garde le doigt sur les verres pour servir le chouchen.\nFanny boit TRÈS vite : sers plus vite qu'elle !"; } }
-        protected override float BaseTimeLimit { get { return 16f; } }
+        public override string Instruction { get { return "Tape sur les verres (ou garde le doigt dessus) pour servir le chouchen.\nFanny boit cul sec : remplis-les plus vite qu'elle les vide !"; } }
+        protected override float BaseTimeLimit { get { return 22f; } }
 
         // Réglages
         const int GlassCount = 5;
-        const float PourRate = 3.2f;        // verres remplis par seconde de versement
-        const float DrunkPerShot = 0.075f;  // ivresse gagnée par shot bu
-        const float SoberWhenWaiting = 0.03f;
-        const float FullEnough = 0.8f;      // elle ne boit que les verres (presque) pleins
+        const float TapFill = 0.5f;         // un tapotement remplit un demi-verre
+        const float PourRate = 4f;          // doigt maintenu : verres remplis par seconde
+        const float DrunkPerShot = 0.12f;   // ivresse gagnée par shot plein (environ 9 shots pour finir)
+        const float SoberWhenWaiting = 0.012f;
+        const float FullEnough = 0.6f;      // elle boit les verres au moins à moitié pleins
 
         class Glass
         {
@@ -41,7 +42,8 @@ namespace FannyIn2Trom
         FaceAnimator anim;
         float drunk, drinkTimer, hicTimer, t, pourSoundTimer, thirstyPopTimer;
         int shots;
-        float glassW, glassH, counterTop;
+        float glassW, glassH, counterTop, spacing;
+        bool drinking;
 
         static readonly Color Chouchen = new Color(0.88f, 0.58f, 0.12f, 0.95f);
 
@@ -72,6 +74,7 @@ namespace FannyIn2Trom
             glassW = 132f; glassH = 176f;
             glasses = new Glass[GlassCount];
             float span = Mathf.Min(Size.x * 0.62f, 1350f);
+            spacing = span / (GlassCount - 1);
             for (int i = 0; i < GlassCount; i++)
             {
                 float x = -span * 0.5f + span * i / (GlassCount - 1) - Size.x * 0.04f;
@@ -111,7 +114,8 @@ namespace FannyIn2Trom
 
         void OnDestroy() { Sfx.StopMusic(this); }
 
-        float DrinkInterval { get { return Mathf.Lerp(0.75f, 0.4f, drunk) / Mathf.Pow(Difficulty, 0.3f); } }
+        /// <summary>Pause entre deux shots (elle enchaîne de plus en plus vite).</summary>
+        float DrinkPause { get { return Mathf.Lerp(0.35f, 0.12f, drunk) / Mathf.Pow(Difficulty, 0.3f); } }
 
         protected override void Tick(float dt)
         {
@@ -121,7 +125,7 @@ namespace FannyIn2Trom
             Glass target = null;
             if (!Locked && Pointer.Held)
             {
-                float best = glassW * 0.9f;
+                float best = spacing * 0.5f;
                 foreach (var g in glasses)
                 {
                     if (g.busy) continue;
@@ -131,6 +135,8 @@ namespace FannyIn2Trom
             }
             if (target != null)
             {
+                // un tapotement = une bonne rasade ; le doigt maintenu continue de verser
+                if (Pointer.Down) { target.fill = Mathf.Min(1f, target.fill + TapFill); Sfx.Play(Sfx.Pour, 0.8f, Random.Range(0.9f, 1.15f)); pourSoundTimer = 0.15f; }
                 target.fill = Mathf.Min(1f, target.fill + PourRate * dt);
                 Vector2 top = target.home + new Vector2(0f, glassH * 0.5f + 175f);
                 bottle.rectTransform.anchoredPosition = Vector2.Lerp(bottle.rectTransform.anchoredPosition, top + new Vector2(28f, 0f), 1f - Mathf.Exp(-dt * 25f));
@@ -161,7 +167,7 @@ namespace FannyIn2Trom
             {
                 drinkTimer -= dt;
                 thirstyPopTimer -= dt;
-                if (drinkTimer <= 0f)
+                if (drinkTimer <= 0f && !drinking)
                 {
                     Glass full = null;
                     foreach (var g in glasses)
@@ -169,7 +175,6 @@ namespace FannyIn2Trom
                     if (full != null)
                     {
                         StartCoroutine(Drink(full));
-                        drinkTimer = DrinkInterval;
                     }
                     else
                     {
@@ -182,12 +187,12 @@ namespace FannyIn2Trom
                             anim.Talk(0.5f);
                             thirstyPopTimer = 1.4f;
                         }
-                        drinkTimer = 0.45f;
+                        drinkTimer = 0.3f;
                     }
                 }
 
                 // hoquet
-                if (drunk > 0.3f)
+                if (drunk > 0.3f && !drinking)
                 {
                     hicTimer -= dt;
                     if (hicTimer <= 0f)
@@ -213,6 +218,11 @@ namespace FannyIn2Trom
         void ApplyDrunkLook(float dt)
         {
             if (Locked) return;
+            face.color = Color.Lerp(Color.white, new Color(1f, 0.8f, 0.78f), drunk);
+            if (ghost.sprite != face.sprite) ghost.sprite = face.sprite;
+            ghost.color = new Color(1f, 0.85f, 0.85f, 0.35f * drunk);
+            Root.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(t * 0.9f) * 2.5f * drunk);
+            if (drinking) return; // pendant qu'elle boit, c'est Drink() qui anime la tête
             float sway = Mathf.Sin(t * 1.7f) * drunk;
             Vector2 target = facePos + new Vector2(Mathf.Sin(t * 1.1f) * 30f * drunk, Mathf.Sin(t * 2.3f) * 8f * drunk);
             face.rectTransform.anchoredPosition = Vector2.Lerp(face.rectTransform.anchoredPosition, target, 1f - Mathf.Exp(-dt * 10f));
@@ -226,56 +236,89 @@ namespace FannyIn2Trom
             Root.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(t * 0.9f) * 2.5f * drunk);
         }
 
+        /// <summary>Elle attrape le verre, renverse la tête, glou glou glou cul sec… et rote.</summary>
         IEnumerator Drink(Glass g)
         {
+            drinking = true;
             g.busy = true;
-            Vector2 lip = mouth + new Vector2(0f, -glassH * 0.3f);
-            // le verre monte jusqu'à sa bouche
-            for (float e = 0f; e < 0.14f; e += Time.deltaTime)
+            RectTransform head = face.rectTransform;
+            Vector2 headStart = head.anchoredPosition;
+            Vector2 lip = mouth + new Vector2(0f, -glassH * 0.32f);
+
+            // 1) le verre monte jusqu'à sa bouche, elle ouvre la bouche
+            anim.Show(Art.VisageBouche, 0.14f);
+            for (float e = 0f; e < 0.12f; e += Time.deltaTime)
             {
-                g.rt.anchoredPosition = Vector2.Lerp(g.home, lip, e / 0.14f);
+                g.rt.anchoredPosition = Vector2.Lerp(g.home, lip, e / 0.12f);
                 yield return null;
             }
-            Sfx.PlayRandom(Sfx.Glous, 0.9f, Random.Range(0.95f, 1.1f));
-            anim.Talk(0.3f, false);
-            // cul sec !
+            // 2) cul sec : tête en arrière, yeux fermés, glou glou glou (la gorge déglutit 3 fois)
+            Sfx.Play(Sfx.GlouGlou, 1f, Random.Range(0.95f, 1.08f));
+            const float gulp = 0.8f;
+            anim.Show(Art.VisageBoit, gulp);
             float start = g.fill;
-            for (float e = 0f; e < 0.16f; e += Time.deltaTime)
+            for (float e = 0f; e < gulp; e += Time.deltaTime)
             {
-                float k = e / 0.16f;
-                g.rt.anchoredPosition = lip + new Vector2(0f, 20f * k);
-                g.rt.localRotation = Quaternion.Euler(0, 0, -70f * k);
-                g.fill = Mathf.Lerp(start, 0f, k);
+                float k = e / gulp;
+                float tilt = Mathf.Sin(Mathf.Min(1f, k * 2.5f) * Mathf.PI * 0.5f);            // la tête part en arrière
+                float swallow = Mathf.Max(0f, Mathf.Sin(e * 2f * Mathf.PI * 3.6f)) * 7f;       // 3 gorgées
+                head.anchoredPosition = headStart + new Vector2(0f, 30f * tilt - swallow);
+                head.localRotation = Quaternion.Euler(0, 0, 6f * tilt);
+                head.localScale = new Vector3(1f, 1f - 0.03f * tilt, 1f);
+                g.rt.anchoredPosition = lip + new Vector2(-10f * tilt, 30f * tilt - swallow);
+                g.rt.localRotation = Quaternion.Euler(0, 0, -95f * tilt);
+                g.fill = Mathf.Lerp(start, 0f, Mathf.Clamp01((k - 0.1f) / 0.8f));
                 yield return null;
             }
             g.fill = 0f;
             shots++;
-            drunk = Mathf.Min(1f, drunk + DrunkPerShot / Mathf.Pow(Difficulty, 0.15f));
-            if (Random.value < 0.25f) Pop("Yec'hed mat !", mouth + new Vector2(faceSize.x * 0.5f, 60f), new Color(1f, 0.85f, 0.3f), 58);
-            else if (drunk > 0.45f && Random.value < 0.3f && Sfx.Laugh != null)
-            {
-                // rire d'ivrogne
-                Sfx.Play(Sfx.Laugh, 0.8f, Random.Range(1.0f, 1.15f));
-                anim.TalkFor(Sfx.Laugh);
-            }
-            // retour sur le comptoir
+            drunk = Mathf.Min(1f, drunk + DrunkPerShot * Mathf.Clamp01(start) / Mathf.Pow(Difficulty, 0.15f));
+
+            // 3) le verre redescend et claque sur le comptoir
             Vector2 from = g.rt.anchoredPosition;
-            for (float e = 0f; e < 0.14f; e += Time.deltaTime)
+            for (float e = 0f; e < 0.12f; e += Time.deltaTime)
             {
-                float k = e / 0.14f;
+                float k = e / 0.12f;
                 g.rt.anchoredPosition = Vector2.Lerp(from, g.home, k);
-                g.rt.localRotation = Quaternion.Euler(0, 0, -70f * (1f - k));
+                g.rt.localRotation = Quaternion.Euler(0, 0, -95f * (1f - k));
+                head.anchoredPosition = Vector2.Lerp(head.anchoredPosition, headStart, 0.35f);
+                head.localRotation = Quaternion.Lerp(head.localRotation, Quaternion.identity, 0.35f);
                 yield return null;
             }
             g.rt.anchoredPosition = g.home;
             g.rt.localRotation = Quaternion.identity;
-            Sfx.PlayRandom(Sfx.Clinks, 0.7f, Random.Range(0.95f, 1.1f)); // le verre claque sur le comptoir
+            Sfx.PlayRandom(Sfx.Clinks, 0.7f, Random.Range(0.95f, 1.1f));
             g.busy = false;
+
+            // 4) ROT !
+            anim.Show(Art.VisageBouche, 0.4f);
+            Sfx.PlayRandom(Sfx.Burps, 1f, Random.Range(0.95f, 1.15f));
+            if (Random.value < 0.5f) Pop(Random.value < 0.5f ? "BEURP !" : "BRÔÔÔ !", mouth + new Vector2(faceSize.x * 0.5f, 40f), new Color(0.9f, 1f, 0.6f), 62);
+            for (float e = 0f; e < 0.4f; e += Time.deltaTime)
+            {
+                float k = e / 0.4f;
+                head.anchoredPosition = headStart + new Vector2(Mathf.Sin(e * 45f) * 5f * (1f - k), -12f * Mathf.Sin(k * Mathf.PI));
+                head.localScale = new Vector3(1f + 0.03f * Mathf.Sin(k * Mathf.PI), 1f, 1f);
+                head.localRotation = Quaternion.identity;
+                yield return null;
+            }
+            head.localScale = Vector3.one;
+            // 5) frisson : ça brûle !
+            anim.Show(Art.VisageGrimace1, 0.25f);
+            if (Random.value < 0.25f) Pop("Yec'hed mat !", mouth + new Vector2(-faceSize.x * 0.55f, 80f), new Color(1f, 0.85f, 0.3f), 58);
+            else if (drunk > 0.45f && Random.value < 0.35f && Sfx.Laugh != null)
+            {
+                Sfx.Play(Sfx.Laugh, 0.8f, Random.Range(1.0f, 1.15f)); // rire d'ivrogne
+                anim.TalkFor(Sfx.Laugh);
+            }
+            drinking = false;
+            drinkTimer = DrinkPause;
         }
 
         IEnumerator WinRoutine()
         {
             Locked = true;
+            while (drinking) yield return null;
             stream.gameObject.SetActive(false);
             Pop("COMPLÈTEMENT BOURRÉE !", new Vector2(0, Size.y * 0.32f), new Color(1f, 0.6f, 0.3f), 92);
             anim.SetGrimace(1f);

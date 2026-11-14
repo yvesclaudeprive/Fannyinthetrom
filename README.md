@@ -5,7 +5,7 @@ Jeu iPhone réalisé avec **Unity**. Fanny est capturée au lasso en Bretagne, p
 | # | Épreuve | Geste |
 |---|---------|-------|
 | 1 | **Le lasso breton**. Fanny marche dans la rue bretonne, sur fond d'air breton. Attrapée, elle se tortille en criant | Toucher l'écran pour lancer le lasso (il faut viser là où elle va être) |
-| 2 | **Le chouchen**. Une rangée de verres à shot au comptoir de la crêperie. Fanny boit très vite : plus on sert vite, plus elle est bourrée (joues rouges, hoquet, vision double, la salle tangue)… et à 100 % d'ivresse, elle vomit | Garder le doigt sur les verres (ou glisser de l'un à l'autre) pour verser |
+| 2 | **Le chouchen**. Une rangée de verres à shot au comptoir de la crêperie. Fanny boit très vite : plus on sert vite, plus elle est bourrée (joues rouges, hoquet, vision double, la salle tangue)… et à 100 % d'ivresse, elle vomit | Taper sur les verres (un tapotement = un demi-verre) ou garder le doigt dessus pour verser. Elle boit cul sec, tête renversée, « glou glou glou », puis rote |
 | 3 | **La barre du métro**. Gros plan sur la main posée sur la barre | Glisser le doigt de haut en bas très vite pour remplir le « Frottomètre » |
 | 4 | **Sur le visage !** Elle grimace et râle dès qu'on la touche ; sa barre de vie descend… puis elle vomit | Frotter partout sur le visage de Fanny jusqu'à vider sa barre de vie |
 

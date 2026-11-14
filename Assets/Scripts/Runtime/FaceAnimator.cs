@@ -14,6 +14,8 @@ namespace FannyIn2Trom
         float blinkIn = 2f, blinkLeft;
         float talkLeft, flapTimer;
         bool talkFlap, mouthOpen;
+        Sprite forced;
+        float forcedLeft;
 
         public static FaceAnimator On(Image image)
         {
@@ -35,6 +37,14 @@ namespace FannyIn2Trom
         }
 
         public void TalkFor(AudioClip clip, bool flap = true) { Talk(clip != null ? clip.length : 0.4f, flap); }
+
+        /// <summary>Impose une expression précise pendant "seconds" (joues gonflées, vomi, elle boit…).</summary>
+        public void Show(Sprite expression, float seconds)
+        {
+            if (expression == null) return;
+            forced = expression;
+            forcedLeft = seconds;
+        }
 
         void Update()
         {
@@ -60,7 +70,9 @@ namespace FannyIn2Trom
             }
             else mouthOpen = false;
 
-            Sprite s = Pick(grimace > 0.7f ? 2 : grimace > 0.25f ? 1 : 0, mouthOpen, blinkLeft > 0f);
+            Sprite s;
+            if (forcedLeft > 0f) { forcedLeft -= dt; s = forced; }
+            else s = Pick(grimace > 0.7f ? 2 : grimace > 0.25f ? 1 : 0, mouthOpen, blinkLeft > 0f);
             if (s != null && img.sprite != s) img.sprite = s;
         }
 
