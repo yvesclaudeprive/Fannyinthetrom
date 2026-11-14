@@ -38,6 +38,7 @@ namespace FannyIn2Trom
         Image drunkFill;
         Text drunkText, shotsText;
         Sprite normalFace, sickFace;
+        FaceAnimator anim;
         float drunk, drinkTimer, hicTimer, t, pourSoundTimer, thirstyPopTimer;
         int shots;
         float glassW, glassH, counterTop;
@@ -58,6 +59,7 @@ namespace FannyIn2Trom
             facePos = new Vector2(Size.x * 0.12f, counterTop + faceSize.y * 0.40f);
             ghost = UIKit.Image("VisionDouble", Root, normalFace, faceSize, facePos, new Color(1f, 1f, 1f, 0f));
             face = UIKit.Image("Fanny", Root, normalFace, faceSize, facePos);
+            anim = FaceAnimator.On(face);
             mouth = facePos + Vector2.Scale(Art.VisageMouth - new Vector2(0.5f, 0.5f), faceSize);
 
             // comptoir
@@ -104,10 +106,10 @@ namespace FannyIn2Trom
 
             drinkTimer = 1.2f;
             hicTimer = 2f;
-            Sfx.PlayMusic(Sfx.MusicBretagne);
+            Sfx.PlayMusic(Sfx.MusicBretagne, 0.55f, this);
         }
 
-        void OnDestroy() { Sfx.StopMusic(); }
+        void OnDestroy() { Sfx.StopMusic(this); }
 
         float DrinkInterval { get { return Mathf.Lerp(0.75f, 0.4f, drunk) / Mathf.Pow(Difficulty, 0.3f); } }
 
@@ -177,6 +179,7 @@ namespace FannyIn2Trom
                         {
                             string[] mots = { "Plus vite !", "J'ai soif !", "Encore !", "Allez, sers !" };
                             Pop(mots[Random.Range(0, mots.Length)], facePos + new Vector2(-faceSize.x * 0.55f, faceSize.y * 0.25f), Color.white, 60);
+                            anim.Talk(0.5f);
                             thirstyPopTimer = 1.4f;
                         }
                         drinkTimer = 0.45f;
@@ -190,6 +193,7 @@ namespace FannyIn2Trom
                     if (hicTimer <= 0f)
                     {
                         Sfx.Play(Sfx.Hic, 1f, Random.Range(0.9f, 1.15f));
+                        anim.Talk(0.15f, false);
                         Pop("Hic !", facePos + new Vector2(faceSize.x * 0.45f, faceSize.y * 0.3f), new Color(1f, 0.8f, 0.8f), 64);
                         face.rectTransform.anchoredPosition += new Vector2(0f, 18f);
                         hicTimer = Random.Range(1.2f, 2.6f) * (1.4f - drunk);
@@ -214,8 +218,8 @@ namespace FannyIn2Trom
             face.rectTransform.anchoredPosition = Vector2.Lerp(face.rectTransform.anchoredPosition, target, 1f - Mathf.Exp(-dt * 10f));
             face.rectTransform.localRotation = Quaternion.Euler(0, 0, sway * 10f);
             face.color = Color.Lerp(Color.white, new Color(1f, 0.8f, 0.78f), drunk);
-            Sprite wanted = drunk > 0.85f && sickFace != null ? sickFace : normalFace;
-            if (face.sprite != wanted) { face.sprite = wanted; ghost.sprite = wanted; }
+            anim.SetGrimace(drunk > 0.85f ? 1f : drunk > 0.6f ? 0.4f : 0f);
+            if (ghost.sprite != face.sprite) ghost.sprite = face.sprite;
             ghost.rectTransform.anchoredPosition = face.rectTransform.anchoredPosition + new Vector2(Mathf.Sin(t * 2.6f) * 45f * drunk, 0f);
             ghost.rectTransform.localRotation = face.rectTransform.localRotation;
             ghost.color = new Color(1f, 0.85f, 0.85f, 0.35f * drunk);
@@ -232,7 +236,8 @@ namespace FannyIn2Trom
                 g.rt.anchoredPosition = Vector2.Lerp(g.home, lip, e / 0.14f);
                 yield return null;
             }
-            Sfx.Play(Sfx.Glou, 0.9f, Random.Range(0.95f, 1.2f));
+            Sfx.PlayRandom(Sfx.Glous, 0.9f, Random.Range(0.95f, 1.1f));
+            anim.Talk(0.3f, false);
             // cul sec !
             float start = g.fill;
             for (float e = 0f; e < 0.16f; e += Time.deltaTime)
@@ -247,6 +252,12 @@ namespace FannyIn2Trom
             shots++;
             drunk = Mathf.Min(1f, drunk + DrunkPerShot / Mathf.Pow(Difficulty, 0.15f));
             if (Random.value < 0.25f) Pop("Yec'hed mat !", mouth + new Vector2(faceSize.x * 0.5f, 60f), new Color(1f, 0.85f, 0.3f), 58);
+            else if (drunk > 0.45f && Random.value < 0.3f && Sfx.Laugh != null)
+            {
+                // rire d'ivrogne
+                Sfx.Play(Sfx.Laugh, 0.8f, Random.Range(1.0f, 1.15f));
+                anim.TalkFor(Sfx.Laugh);
+            }
             // retour sur le comptoir
             Vector2 from = g.rt.anchoredPosition;
             for (float e = 0f; e < 0.14f; e += Time.deltaTime)
@@ -258,6 +269,7 @@ namespace FannyIn2Trom
             }
             g.rt.anchoredPosition = g.home;
             g.rt.localRotation = Quaternion.identity;
+            Sfx.PlayRandom(Sfx.Clinks, 0.7f, Random.Range(0.95f, 1.1f)); // le verre claque sur le comptoir
             g.busy = false;
         }
 
@@ -266,7 +278,7 @@ namespace FannyIn2Trom
             Locked = true;
             stream.gameObject.SetActive(false);
             Pop("COMPLÈTEMENT BOURRÉE !", new Vector2(0, Size.y * 0.32f), new Color(1f, 0.6f, 0.3f), 92);
-            if (sickFace != null) { face.sprite = sickFace; ghost.sprite = sickFace; }
+            anim.SetGrimace(1f);
             // elle tangue, hoquette...
             for (float e = 0f; e < 1.3f; e += Time.deltaTime)
             {
@@ -275,8 +287,9 @@ namespace FannyIn2Trom
                 face.rectTransform.anchoredPosition = facePos + new Vector2(Mathf.Sin(t * 2f) * 50f, 0f);
                 ghost.rectTransform.anchoredPosition = face.rectTransform.anchoredPosition + new Vector2(Mathf.Sin(t * 5f) * 60f, 0f);
                 ghost.rectTransform.localRotation = face.rectTransform.localRotation;
+                ghost.sprite = face.sprite;
                 Root.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(t * 1.4f) * 4f);
-                if (e < 0.05f || (e > 0.6f && e < 0.65f)) Sfx.Play(Sfx.Hic);
+                if (e < 0.05f || (e > 0.6f && e < 0.65f)) { Sfx.Play(Sfx.Hic); anim.Talk(0.15f, false); }
                 yield return null;
             }
             face.rectTransform.localRotation = Quaternion.identity;

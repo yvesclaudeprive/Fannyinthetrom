@@ -86,7 +86,9 @@ Toutes les images sont dans `Assets/Resources/Art/`. **Pour en changer une, il s
 |---------|------|-----------------|
 | `bg_bretagne.jpg` | Décor de l'épreuve 1 et de l'écran titre | Ta scène bretonne. La Fanny déjà dessinée a été **effacée et masquée par un massif d'hortensias**, en provisoire |
 | `fanny_face.png`, `fanny_profil.png`, `fanny_dos.png` | Fanny qui se balade (face / profil / dos selon sa direction) | Détourées depuis ta planche personnage (fond transparent) |
-| `fanny_marche_1.png` … `fanny_marche_3.png` | Étapes de marche de profil (pas, passage, pas inverse) | Fabriquées à partir du profil (jambes animées) |
+| `fanny_marche_1.png` … `fanny_marche_6.png` | Marche de profil : 6 étapes (appui, genou qui plie, pied qui décolle, passage…) | Fabriquées à partir du profil |
+| `fanny_debat_1.png` … `fanny_debat_4.png` | Fanny qui se débat dans le lasso : bras qui battent, jambes qui ruent, grimace | Fabriquées à partir de la vue de face |
+| `fanny_visage_yeux_fermes`, `_bouche`, `_grimace_1`, `_beurk_bouche`, `_beurk_yeux_fermes` | Expressions animées : clignement, bouche qui s'ouvre quand elle crie, grimace légère puis franche | Fabriquées en déformant le visage |
 | `fanny_visage.png` | Gros plan du visage (épreuve 3, portrait dans l'épreuve 2) | Agrandi depuis la planche, donc un peu flou |
 | `bg_metro.jpg` | Rame de métro (épreuves 2 et 3). L'épreuve 2 fait un gros plan sur la grande barre | Ta scène métro |
 | `main_barre.png` | Bras + main qui glisse sur la barre | Détourée depuis ton gros plan, manche prolongée hors champ |
@@ -95,8 +97,8 @@ Toutes les images sont dans `Assets/Resources/Art/`. **Pour en changer une, il s
 Règles : PNG avec fond transparent pour les personnages, JPG ou PNG pour les décors. Les réglages d'import sont automatiques.
 Les barres orange/bleue dessinées dans le décor breton servent de vrai HUD (orange = temps, bleu = lassos restants). Si le décor est remplacé par une image d'une autre taille, ces barres ne sont plus utilisées et le chrono standard s'affiche.
 
-Les sons sont générés par le code : air breton original (bombarde, biniou, tambour) dans la rue et sur l'écran titre, cris de Fanny (« hé ! », « hmpf », « beurk », « bleuargh »), lasso, « wah wah wah » de trombone quand on perd, carillon du métro…
-Pour mettre de vrais sons ou une vraie musique, déposer des `.wav`/`.mp3` dans `Assets/Resources/Audio/` avec ces noms : `musique_bretagne`, `cri`, `ouille`, `beurk`, `vomi`, `splash`, `hic`, `glou`, `verser`, `lasso`, `attrape`, `rate`, `frotte`, `squish`, `victoire`, `perdu`, `tic`, `carillon`, `click`.
+Les sons sont de **vrais enregistrements libres de droits (CC0)** : voix de Fanny (cris, « hmpf », toux de dégoût, rire, respiration paniquée), lasso, pas sur les pavés, gorgées, verres, versement, vomi, ambiance du métro, jingles et voix d'annonceur (« 3, 2, 1, Go ! », « Game over »). La musique bretonne est un air original joué avec de vrais timbres d'instruments (bombarde, cornemuse, caisse claire). Origine et licences : `Docs/CREDITS_SONS.md`.
+Pour changer un son, remplacer le fichier dans `Assets/Resources/Audio/` en gardant le même nom (`.ogg`, `.wav` ou `.mp3`). Pour les variantes (`cri_1`, `cri_2`…), le jeu en tire une au hasard.
 
 ## 5. Ce qui aiderait pour la suite (visuels à fournir)
 

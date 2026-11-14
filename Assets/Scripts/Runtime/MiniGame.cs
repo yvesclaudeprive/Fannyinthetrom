@@ -127,6 +127,8 @@ namespace FannyIn2Trom
 
             Sfx.Play(Sfx.Vomit);
             Sfx.Vibrate();
+            var fa = head != null ? head.GetComponent<FaceAnimator>() : null;
+            if (fa != null) { fa.SetGrimace(1f); fa.Talk(1.6f, false); }
             Pop("BLEUUAARGH !", mouth + new Vector2(430f, 180f), new Color(0.7f, 1f, 0.3f), 96);
 
             const float spew = 1.3f, total = 2.3f;

@@ -20,6 +20,13 @@ namespace FannyIn2Trom
         public static AudioClip Ouille, Beurk, Yelp, Vomit, Splash, Hic, Glou, Pour;
         /// <summary>Air breton (bombarde + biniou + tambour), en boucle.</summary>
         public static AudioClip MusicBretagne;
+        /// <summary>Grondement du métro (boucle).</summary>
+        public static AudioClip MetroAmbiance;
+        /// <summary>Variantes (vrais sons libres de droits, CC0) : une est tirée au hasard à chaque fois.</summary>
+        public static AudioClip[] Yelps, Ouilles, Beurks, Glous, Rubs, Steps, Clinks;
+        public static AudioClip Scream, Breath, Laugh;
+        /// <summary>Voix de l'annonceur.</summary>
+        public static AudioClip Voice3, Voice2, Voice1, VoiceGo, VoiceGameOver, VoiceRecord, VoiceLevel;
 
 #if UNITY_IOS && !UNITY_EDITOR
         [DllImport("__Internal")] static extern void FannySetPlaybackAudio();
@@ -84,7 +91,7 @@ namespace FannyIn2Trom
                 float lt = t < 0.35f ? t : t - 0.35f;
                 return Mathf.Sin(2 * Mathf.PI * f * t) * 0.5f * Mathf.Exp(-lt * 4f);
             });
-            GameOver = Lose;
+            GameOver = Load("gameover") ?? Lose;
 
             // --- voix de Fanny (synthèse par formants) ---
             // "Hmpf !" quand on lui touche le visage
@@ -108,6 +115,20 @@ namespace FannyIn2Trom
             Pour = Load("verser") ?? PourClip();
 
             MusicBretagne = Load("musique_bretagne") ?? BretonTune();
+            MetroAmbiance = Load("metro_ambiance");
+
+            Yelps = Variants("cri", Yelp);
+            Ouilles = Variants("ouille", Ouille);
+            Beurks = Variants("beurk", Beurk);
+            Glous = Variants("glou", Glou);
+            Rubs = Variants("frotte", Rub);
+            Steps = Variants("pas", null);
+            Clinks = Variants("verre", null);
+            Scream = Load("au_secours");
+            Breath = Load("souffle");
+            Laugh = Load("rire");
+            Voice3 = Load("voix_3"); Voice2 = Load("voix_2"); Voice1 = Load("voix_1"); VoiceGo = Load("voix_go");
+            VoiceGameOver = Load("voix_gameover"); VoiceRecord = Load("voix_record"); VoiceLevel = Load("voix_niveau");
         }
 
         public static void Play(AudioClip clip, float volume = 1f, float pitch = 1f)
@@ -117,18 +138,53 @@ namespace FannyIn2Trom
             source.PlayOneShot(clip, volume);
         }
 
-        public static void PlayMusic(AudioClip clip)
+        /// <summary>Joue une des variantes au hasard ; renvoie le son choisi (pour animer la bouche).</summary>
+        public static AudioClip PlayRandom(AudioClip[] clips, float volume = 1f, float pitch = 1f)
+        {
+            if (clips == null || clips.Length == 0) return null;
+            var c = clips[rnd.Next(clips.Length)];
+            Play(c, volume, pitch);
+            return c;
+        }
+
+        static AudioClip[] Variants(string name, AudioClip fallback)
+        {
+            var list = new System.Collections.Generic.List<AudioClip>();
+            for (int i = 1; i <= 12; i++)
+            {
+                var c = Load(name + "_" + i);
+                if (c == null) break;
+                list.Add(c);
+            }
+            if (list.Count == 0)
+            {
+                var single = Load(name);
+                if (single != null) list.Add(single);
+                else if (fallback != null) list.Add(fallback);
+            }
+            return list.ToArray();
+        }
+
+        static object musicOwner;
+
+        /// <summary>Lance une musique/ambiance en boucle. Si elle joue déjà, elle continue sans coupure.</summary>
+        public static void PlayMusic(AudioClip clip, float volume = 0.55f, object owner = null)
         {
             if (music == null || clip == null) return;
+            musicOwner = owner;
+            music.volume = volume;
             if (music.clip == clip && music.isPlaying) return;
             music.clip = clip;
-            music.volume = 0.55f;
             music.Play();
         }
 
-        public static void StopMusic()
+        /// <summary>Arrête la musique, seulement si c'est bien "owner" qui l'a lancée en dernier.</summary>
+        public static void StopMusic(object owner = null)
         {
-            if (music != null) music.Stop();
+            if (music == null) return;
+            if (owner != null && owner != musicOwner) return;
+            music.Stop();
+            musicOwner = null;
         }
 
         public static void Vibrate()

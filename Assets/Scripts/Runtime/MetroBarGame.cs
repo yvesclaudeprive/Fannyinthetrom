@@ -34,6 +34,8 @@ namespace FannyIn2Trom
         Text gaugeText, germText, stationText;
         readonly List<RectTransform> lights = new List<RectTransform>();
         int stuckGerms;
+        FaceAnimator anim;
+        float moanTimer = 1.5f;
 
         protected override void Build()
         {
@@ -108,6 +110,8 @@ namespace FannyIn2Trom
             var frame = UIKit.Image("Cadre", shakeRoot, Art.RoundedRect, new Vector2(frameSize, frameSize), framePos, new Color(0.12f, 0.16f, 0.32f, 0.9f));
             frame.type = Image.Type.Sliced;
             fannyFace = UIKit.Image("Fanny", frame.transform, face, UIKit.SizeForHeight(face, frameSize * 0.9f), new Vector2(0, -frameSize * 0.02f));
+            anim = FaceAnimator.On(fannyFace);
+            Sfx.PlayMusic(Sfx.MetroAmbiance, 0.5f, this);
             UIKit.Text("Nom", frame.transform, "Fanny", 40, Color.white, new Vector2(400, 60), new Vector2(0, frameSize * 0.5f + 32f));
 
             // Frottomètre (à droite)
@@ -130,6 +134,8 @@ namespace FannyIn2Trom
             germText = UIKit.Text("Microbes", shakeRoot, "Microbes ramassés : 0", 44, new Color(0.7f, 1f, 0.4f), new Vector2(Mathf.Min(900f, Size.x - 40f), 60), new Vector2(framePos.x, -top + 60f));
             NextStation();
         }
+
+        void OnDestroy() { Sfx.StopMusic(this); }
 
         void NextStation()
         {
@@ -172,7 +178,7 @@ namespace FannyIn2Trom
                 if (rubAccum > 110f)
                 {
                     rubAccum -= 110f;
-                    Sfx.Play(Sfx.Rub, 0.7f, Random.Range(0.85f, 1.35f));
+                    Sfx.PlayRandom(Sfx.Rubs, 0.7f, Random.Range(0.9f, 1.2f));
                     SpawnGerm();
                 }
                 if (meter >= 1f) StartCoroutine(WinRoutine());
@@ -184,6 +190,14 @@ namespace FannyIn2Trom
             gaugeText.text = Mathf.RoundToInt(meter * 100f) + " %";
             germText.text = "Microbes ramassés : " + Mathf.RoundToInt(germCount).ToString("N0").Replace(',', ' ');
             fannyFace.color = Color.Lerp(Color.white, new Color(0.78f, 1f, 0.65f), meter);
+            // Fanny grimace de plus en plus à mesure que ses mains se couvrent de microbes
+            anim.SetGrimace(meter);
+            moanTimer -= dt;
+            if (!Locked && meter > 0.35f && moanTimer <= 0f)
+            {
+                anim.TalkFor(Sfx.PlayRandom(Sfx.Beurks, 0.6f, Random.Range(0.95f, 1.1f)), false);
+                moanTimer = Random.Range(1.6f, 2.6f);
+            }
             fannyFace.rectTransform.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(shakeT * 20f) * 3f * meter);
         }
 

@@ -42,6 +42,29 @@ namespace FannyIn2Trom
             }
         }
         static Sprite[] marche;
+
+        /// <summary>Poses où Fanny se débat dans le lasso (fanny_debat_1..4), vue de face.</summary>
+        public static Sprite[] FannyDebat { get { if (debat == null) debat = LoadSeq("fanny_debat_"); return debat; } }
+        static Sprite[] debat;
+
+        // Expressions du visage (gros plan)
+        public static Sprite VisageYeuxFermes { get { return Load("fanny_visage_yeux_fermes", null); } }
+        public static Sprite VisageBouche { get { return Load("fanny_visage_bouche", null); } }
+        public static Sprite VisageGrimace1 { get { return Load("fanny_visage_grimace_1", null); } }
+        public static Sprite VisageBeurkBouche { get { return Load("fanny_visage_beurk_bouche", null); } }
+        public static Sprite VisageBeurkYeuxFermes { get { return Load("fanny_visage_beurk_yeux_fermes", null); } }
+
+        static Sprite[] LoadSeq(string prefix)
+        {
+            var list = new List<Sprite>();
+            for (int i = 1; i <= 12; i++)
+            {
+                var s = Load(prefix + i, null);
+                if (s == null) break;
+                list.Add(s);
+            }
+            return list.ToArray();
+        }
         /// <summary>Optionnel : visage dégoûté. Si absent, le visage normal est teinté en vert.</summary>
         public static Sprite FannyVisageBeurk { get { return Load("fanny_visage_beurk", null); } }
         public static Sprite BgMetro { get { return Load("bg_metro", MakeMetroWall); } }

@@ -34,6 +34,7 @@ namespace FannyIn2Trom
         float beurkTimer, wobble, ouilleTimer;
         bool touching;
         Sprite normalFace, grimaceFace;
+        FaceAnimator anim;
 
         protected override void Build()
         {
@@ -47,6 +48,8 @@ namespace FannyIn2Trom
             face = UIKit.Image("Visage", Root, sprite, faceSize, facePos);
             normalFace = sprite;
             grimaceFace = Art.FannyVisageBeurk;
+            anim = FaceAnimator.On(face);
+            Sfx.PlayMusic(Sfx.MetroAmbiance, 0.45f, this);
 
             // calque de "microbes" peint par-dessus le visage
             texH = Mathf.RoundToInt(TexW * faceSize.y / faceSize.x);
@@ -108,7 +111,7 @@ namespace FannyIn2Trom
             if (!Locked && onFace && !touching)
             {
                 // "Hmpf !" dès qu'on lui touche le visage
-                Sfx.Play(Sfx.Ouille, 1f, Random.Range(0.9f, 1.2f));
+                anim.TalkFor(Sfx.PlayRandom(Sfx.Ouilles, 1f, Random.Range(0.95f, 1.12f)));
                 ouilleTimer = 0.7f;
             }
             touching = !Locked && onFace;
@@ -117,7 +120,7 @@ namespace FannyIn2Trom
                 ouilleTimer -= dt;
                 if (ouilleTimer <= 0f)
                 {
-                    Sfx.Play(Sfx.Ouille, 0.7f, Random.Range(0.85f, 1.3f));
+                    anim.TalkFor(Sfx.PlayRandom(Sfx.Ouilles, 0.75f, Random.Range(0.9f, 1.15f)));
                     ouilleTimer = Random.Range(0.6f, 1.0f);
                 }
             }
@@ -156,10 +159,9 @@ namespace FannyIn2Trom
             if (!Locked)
             {
                 bool grimace = touching || shown > 0.75f;
-                Sprite wanted = grimace && grimaceFace != null ? grimaceFace : normalFace;
-                if (face.sprite != wanted) face.sprite = wanted;
+                // grimace progressive dès qu'on la touche (légère puis franche)
+                anim.SetGrimace(grimace ? 1f : shown * 0.5f);
                 float squeeze = touching ? 0.035f : 0f;
-                if (grimaceFace == null) squeeze *= 2f;
                 face.rectTransform.localScale = new Vector3(1f + squeeze, 1f - squeeze, 1f);
             }
             if (!Locked)
@@ -171,7 +173,7 @@ namespace FannyIn2Trom
             {
                 beurkTimer = Random.Range(0.9f, 1.6f);
                 string[] words = { "Beurk !", "Pouah !", "Berk !!", "Bah non !", "Au secours !" };
-                Sfx.Play(Sfx.Beurk, 0.9f, Random.Range(0.92f, 1.15f));
+                anim.TalkFor(Sfx.PlayRandom(Sfx.Beurks, 0.9f, Random.Range(0.95f, 1.1f)), false);
                 Pop(words[Random.Range(0, words.Length)], facePos + new Vector2(Random.value < 0.5f ? -430f : 430f, Random.Range(0f, 260f)), new Color(0.65f, 1f, 0.35f), 70);
             }
 
@@ -234,7 +236,7 @@ namespace FannyIn2Trom
             Locked = true;
             Sfx.Play(Sfx.Squish);
             Sfx.Vibrate();
-            if (grimaceFace != null) face.sprite = grimaceFace;
+            anim.SetGrimace(1f);
             face.rectTransform.localScale = Vector3.one;
             progressText.text = "Fanny : K.O.";
             Pop("CONTAMINATION TOTALE !", new Vector2(0, Size.y * 0.3f), new Color(0.6f, 1f, 0.3f), 95);
@@ -250,7 +252,7 @@ namespace FannyIn2Trom
             yield return new WaitForSeconds(0.7f);
 
             // haut-le-cœur : elle gonfle les joues...
-            Sfx.Play(Sfx.Ouille, 0.8f, 0.75f);
+            anim.TalkFor(Sfx.PlayRandom(Sfx.Beurks, 0.9f, 0.9f), false);
             for (float e = 0f; e < 0.7f; e += Time.deltaTime)
             {
                 float k = Mathf.Sin(e * 22f);
@@ -291,6 +293,7 @@ namespace FannyIn2Trom
         void OnDestroy()
         {
             if (paintTex != null) Destroy(paintTex);
+            Sfx.StopMusic(this);
         }
     }
 }

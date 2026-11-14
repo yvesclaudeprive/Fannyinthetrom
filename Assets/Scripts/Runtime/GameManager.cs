@@ -201,7 +201,11 @@ namespace FannyIn2Trom
             while (lives > 0)
             {
                 hud.SetLevel(level);
-                if (level > 1) yield return Banner("NIVEAU " + level, "Ça accélère !", new Color(1f, 0.8f, 0.2f), 1.6f);
+                if (level > 1)
+                {
+                    Sfx.Play(Sfx.VoiceLevel);
+                    yield return Banner("NIVEAU " + level, "Ça accélère !", new Color(1f, 0.8f, 0.2f), 1.6f);
+                }
 
                 for (int i = 0; i < stages.Length && lives > 0; i++)
                 {
@@ -288,6 +292,8 @@ namespace FannyIn2Trom
                 PlayerPrefs.Save();
             }
 
+            Sfx.Play(Sfx.GameOver);
+            Sfx.Play(record && Sfx.VoiceRecord != null ? Sfx.VoiceRecord : Sfx.VoiceGameOver);
             var root = UIKit.Stretch(UIKit.Rect("GameOver", overlayLayer));
             UIKit.Panel("Voile", root, new Color(0.04f, 0.04f, 0.1f, 0.88f));
             UIKit.Text("Titre", root, "GAME OVER", 150, new Color(1f, 0.4f, 0.35f), new Vector2(1400, 200), new Vector2(0, 270));
@@ -319,7 +325,9 @@ namespace FannyIn2Trom
             foreach (var s in steps)
             {
                 count.text = s;
-                Sfx.Play(Sfx.Tick, 1f, s == "GO !" ? 1.5f : 1f);
+                AudioClip voice = s == "3" ? Sfx.Voice3 : s == "2" ? Sfx.Voice2 : s == "1" ? Sfx.Voice1 : Sfx.VoiceGo;
+                if (voice != null) Sfx.Play(voice);
+                else Sfx.Play(Sfx.Tick, 1f, s == "GO !" ? 1.5f : 1f);
                 for (float e = 0; e < 0.45f; e += Time.deltaTime)
                 {
                     count.rectTransform.localScale = Vector3.one * Mathf.Lerp(1.5f, 1f, e / 0.2f);

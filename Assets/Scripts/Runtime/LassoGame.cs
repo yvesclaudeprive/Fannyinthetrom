@@ -41,6 +41,7 @@ namespace FannyIn2Trom
         float speed, pauseTimer, retargetTimer, sprintTimer, walkPhase, walkDist;
         int lassosLeft, lassosMax;
         bool throwing, caught;
+        int lastStepFrame = -1;
 
         protected override void Build()
         {
@@ -92,7 +93,7 @@ namespace FannyIn2Trom
             rope.gameObject.SetActive(false);
             loop.gameObject.SetActive(false);
 
-            Sfx.PlayMusic(Sfx.MusicBretagne);
+            Sfx.PlayMusic(Sfx.MusicBretagne, 0.55f, this);
             feet = new Vector2(Random.value < 0.5f ? 600f : 1900f, Random.Range(WalkMinY, WalkMaxY));
             NewTarget();
             PlaceFanny();
@@ -115,7 +116,7 @@ namespace FannyIn2Trom
 
         void OnDestroy()
         {
-            Sfx.StopMusic();
+            Sfx.StopMusic(this);
         }
 
         protected override void OnTimerChanged(float fraction)
@@ -196,9 +197,17 @@ namespace FannyIn2Trom
                 {
                     view = Art.FannyProfil;
                     var steps = Art.FannyMarche;
-                    if (steps.Length >= 3)
+                    if (steps.Length >= 6)
                     {
-                        // cycle : pas, passage, pas inverse, passage
+                        // 6 étapes pour 2 pas : appui, genou qui plie, passage… puis l'autre jambe
+                        int frame = Mathf.FloorToInt(walkDist / (StridePx / 3f)) % 6;
+                        view = steps[frame];
+                        if (frame != lastStepFrame && (frame == 0 || frame == 3))
+                            Sfx.PlayRandom(Sfx.Steps, 0.35f, Random.Range(0.9f, 1.1f)); // bruit de pas sur les pavés
+                        lastStepFrame = frame;
+                    }
+                    else if (steps.Length >= 3)
+                    {
                         int[] cycle = { 0, 1, 2, 1 };
                         view = steps[cycle[Mathf.FloorToInt(walkDist / StridePx) % 4]];
                     }
@@ -210,7 +219,7 @@ namespace FannyIn2Trom
             if (fanny.sprite != view) fanny.sprite = view;
 
             float k = walkDist / StridePx;
-            float bob = moving ? (0.5f - 0.5f * Mathf.Cos(Mathf.PI * k)) * h * 0.02f : 0f;
+            float bob = moving ? (0.5f - 0.5f * Mathf.Cos(2f * Mathf.PI * k)) * h * 0.018f : 0f;
             fanny.rectTransform.sizeDelta = UIKit.SizeForHeight(view, h);
             fanny.rectTransform.anchoredPosition = ImgToWorld(feet) + new Vector2(0f, bob);
             if (!Locked)
@@ -307,6 +316,7 @@ namespace FannyIn2Trom
             Sfx.Play(Sfx.Catch);
             Sfx.Vibrate();
             fanny.sprite = Art.FannyFace;
+            fanny.rectTransform.sizeDelta = UIKit.SizeForHeight(Art.FannyFace, HeightAt(feet.y) * scale);
             fanny.rectTransform.localRotation = Quaternion.identity;
             fanny.rectTransform.localScale = Vector3.one;
             Pop("ATTRAPÉE !", TorsoScreen() + Vector2.up * 260f, new Color(1f, 0.85f, 0.2f), 110);
@@ -326,29 +336,41 @@ namespace FannyIn2Trom
                 SetRope(from, loop.rectTransform.anchoredPosition);
                 yield return null;
             }
-            // elle se tortille dans le lasso !
+            // elle se tortille dans le lasso : bras qui battent, jambes qui ruent, grimace
             Vector2 basePos = fanny.rectTransform.anchoredPosition;
+            var poses = Art.FannyDebat;
+            float faceH = Art.FannyFace != null ? Art.FannyFace.rect.height : 1f;
+            if (Sfx.Scream != null) Sfx.Play(Sfx.Scream, 1f);
+            if (Sfx.Breath != null) Sfx.Play(Sfx.Breath, 0.6f);
             string[] cris = { "Au secours !", "Lâchez-moi !", "Hééé !" };
             int criIndex = 0;
             float nextYelp = 0f;
             const float struggle = 1.8f;
             for (float e = 0f; e < struggle; e += Time.deltaTime)
             {
+                if (poses.Length > 0)
+                {
+                    var pose = poses[Mathf.FloorToInt(e * 9f) % poses.Length];
+                    if (fanny.sprite != pose)
+                    {
+                        fanny.sprite = pose;
+                        fanny.rectTransform.sizeDelta = UIKit.SizeForHeight(pose, h * pose.rect.height / faceH);
+                    }
+                }
                 float wig = Mathf.Sin(e * 26f);
                 float hop = Mathf.Abs(Mathf.Sin(e * 13f)) * h * 0.05f;
                 float wobble = wig * 22f;
                 fanny.rectTransform.anchoredPosition = basePos + new Vector2(wobble, hop);
-                fanny.rectTransform.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(e * 19f) * 11f);
+                fanny.rectTransform.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(e * 17f) * 8f);
                 // elle se tord : écrasée / étirée, et se retourne d'un côté puis de l'autre
-                float squash = 1f + Mathf.Sin(e * 31f) * 0.07f;
-                float side = Mathf.Sin(e * 7f) >= 0f ? 1f : -1f;
-                fanny.rectTransform.localScale = new Vector3(side * (2f - squash), squash, 1f);
+                float squash = 1f + Mathf.Sin(e * 31f) * 0.05f;
+                fanny.rectTransform.localScale = new Vector3(2f - squash, squash, 1f);
                 loop.rectTransform.anchoredPosition = waist + new Vector2(wobble, hop);
                 loop.rectTransform.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(e * 19f) * 8f);
                 SetRope(from, loop.rectTransform.anchoredPosition);
                 if (e >= nextYelp)
                 {
-                    Sfx.Play(Sfx.Yelp, 0.9f, Random.Range(0.9f, 1.25f));
+                    if (e > 0.5f || Sfx.Scream == null) Sfx.PlayRandom(Sfx.Yelps, 0.9f, Random.Range(0.95f, 1.15f));
                     if (criIndex < cris.Length && e > 0.2f)
                     {
                         Pop(cris[criIndex], TorsoScreen() + new Vector2(criIndex % 2 == 0 ? -260f : 260f, h * 0.45f), Color.white, 64);
