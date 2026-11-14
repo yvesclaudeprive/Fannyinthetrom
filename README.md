@@ -5,8 +5,9 @@ Jeu iPhone réalisé avec **Unity**. Fanny est capturée au lasso en Bretagne, p
 | # | Épreuve | Geste |
 |---|---------|-------|
 | 1 | **Le lasso breton**. Fanny marche dans la rue bretonne, sur fond d'air breton. Attrapée, elle se tortille en criant | Toucher l'écran pour lancer le lasso (il faut viser là où elle va être) |
-| 2 | **La barre du métro**. Gros plan sur la main posée sur la barre | Glisser le doigt de haut en bas très vite pour remplir le « Frottomètre » |
-| 3 | **Sur le visage !** Elle grimace et râle dès qu'on la touche ; sa barre de vie descend… puis elle vomit | Frotter partout sur le visage de Fanny jusqu'à vider sa barre de vie |
+| 2 | **Le chouchen**. Une rangée de verres à shot au comptoir de la crêperie. Fanny boit très vite : plus on sert vite, plus elle est bourrée (joues rouges, hoquet, vision double, la salle tangue)… et à 100 % d'ivresse, elle vomit | Garder le doigt sur les verres (ou glisser de l'un à l'autre) pour verser |
+| 3 | **La barre du métro**. Gros plan sur la main posée sur la barre | Glisser le doigt de haut en bas très vite pour remplir le « Frottomètre » |
+| 4 | **Sur le visage !** Elle grimace et râle dès qu'on la touche ; sa barre de vie descend… puis elle vomit | Frotter partout sur le visage de Fanny jusqu'à vider sa barre de vie |
 
 Le jeu se joue entièrement **à l'horizontale**.
 
@@ -95,7 +96,7 @@ Règles : PNG avec fond transparent pour les personnages, JPG ou PNG pour les d�
 Les barres orange/bleue dessinées dans le décor breton servent de vrai HUD (orange = temps, bleu = lassos restants). Si le décor est remplacé par une image d'une autre taille, ces barres ne sont plus utilisées et le chrono standard s'affiche.
 
 Les sons sont générés par le code : air breton original (bombarde, biniou, tambour) dans la rue et sur l'écran titre, cris de Fanny (« hé ! », « hmpf », « beurk », « bleuargh »), lasso, « wah wah wah » de trombone quand on perd, carillon du métro…
-Pour mettre de vrais sons ou une vraie musique, déposer des `.wav`/`.mp3` dans `Assets/Resources/Audio/` avec ces noms : `musique_bretagne`, `cri`, `ouille`, `beurk`, `vomi`, `splash`, `lasso`, `attrape`, `rate`, `frotte`, `squish`, `victoire`, `perdu`, `tic`, `carillon`, `click`.
+Pour mettre de vrais sons ou une vraie musique, déposer des `.wav`/`.mp3` dans `Assets/Resources/Audio/` avec ces noms : `musique_bretagne`, `cri`, `ouille`, `beurk`, `vomi`, `splash`, `hic`, `glou`, `verser`, `lasso`, `attrape`, `rate`, `frotte`, `squish`, `victoire`, `perdu`, `tic`, `carillon`, `click`.
 
 ## 5. Ce qui aiderait pour la suite (visuels à fournir)
 
@@ -111,8 +112,9 @@ Assets/Scripts/Runtime/
   GameManager.cs   démarrage automatique, menu, enchaînement des épreuves, vies, score, HUD
   MiniGame.cs      base commune des épreuves (chrono, victoire/défaite, effets)
   LassoGame.cs     épreuve 1 : le lasso breton
-  MetroBarGame.cs  épreuve 2 : la barre du métro
-  FaceRubGame.cs   épreuve 3 : sur le visage
+  ChouchenGame.cs  épreuve 2 : le chouchen
+  MetroBarGame.cs  épreuve 3 : la barre du métro
+  FaceRubGame.cs   épreuve 4 : sur le visage
   Art.cs           chargement des images + repères (position de la barre, de la main…)
   Painter.cs       dessin des visuels provisoires
   Sfx.cs           bruitages synthétisés

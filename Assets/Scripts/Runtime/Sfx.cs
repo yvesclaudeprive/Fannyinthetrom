@@ -16,7 +16,7 @@ namespace FannyIn2Trom
 
         public static AudioClip Click, Whoosh, Catch, Miss, Rub, Squish, Win, Lose, Tick, Chime, GameOver;
         /// <summary>Petits cris de Fanny.</summary>
-        public static AudioClip Ouille, Beurk, Yelp, Vomit, Splash;
+        public static AudioClip Ouille, Beurk, Yelp, Vomit, Splash, Hic, Glou, Pour;
         /// <summary>Air breton (bombarde + biniou + tambour), en boucle.</summary>
         public static AudioClip MusicBretagne;
 
@@ -79,6 +79,14 @@ namespace FannyIn2Trom
             Vomit = Load("vomi") ?? VoiceClip("vomi", 1.3f, t => 170f - 50f * t + 12f * Mathf.Sin(t * 30f), new[] { 650f, 1050f, 2400f },
                 t => Env(t, 1.3f, 0.05f) * (0.55f + 0.45f * Mathf.Sin(t * 2f * Mathf.PI * 22f)), t => 0.25f + 0.3f * t);
             Splash = Load("splash") ?? SplashClip();
+            // "Hic !"
+            Hic = Load("hic") ?? VoiceClip("hic", 0.14f, t => 330f + 900f * t, new[] { 300f, 2300f, 3000f },
+                t => t < 0.008f ? t / 0.008f : Mathf.Exp(-(t - 0.008f) * 22f), t => 0.15f);
+            // "Glou glou glou"
+            Glou = Load("glou") ?? VoiceClip("glou", 0.42f, t => 210f - 40f * t, new[] { 300f, 750f, 2300f },
+                t => Mathf.Pow(Mathf.Max(0f, Mathf.Sin(t * Mathf.PI * 2f * 7f)), 2f) * Env(t, 0.42f, 0.01f), t => 0.1f);
+            // liquide qui coule
+            Pour = Load("verser") ?? PourClip();
 
             MusicBretagne = Load("musique_bretagne") ?? BretonTune();
         }
@@ -178,6 +186,22 @@ namespace FannyIn2Trom
             }
             for (int i = 0; i < n; i++) data[i] = data[i] / peak * 0.8f;
             return Make(name, data, Rate);
+        }
+
+        static AudioClip PourClip()
+        {
+            int n = Mathf.CeilToInt(0.2f * Rate);
+            var data = new float[n];
+            var bp = new Reso(1100f, 700f, Rate);
+            for (int i = 0; i < n; i++)
+            {
+                float t = i / (float)Rate;
+                float gurgle = 0.6f + 0.4f * Mathf.Sin(t * 2f * Mathf.PI * (38f + 20f * Mathf.Sin(t * 50f)));
+                data[i] = bp.Step(Noise()) * gurgle * Mathf.Sin(Mathf.PI * t / 0.2f) * 10f;
+            }
+            Normalize(data);
+            for (int i = 0; i < n; i++) data[i] *= 0.6f;
+            return Make("verser", data, Rate);
         }
 
         static AudioClip SplashClip()

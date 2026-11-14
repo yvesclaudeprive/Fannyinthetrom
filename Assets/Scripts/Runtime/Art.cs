@@ -135,6 +135,13 @@ namespace FannyIn2Trom
             }
         }
 
+        /// <summary>Bouteille de chouchen (le goulot est en haut).</summary>
+        public static Sprite Bottle { get { return Load("bouteille_chouchen", MakeBottle); } }
+        /// <summary>Verre à shot vide (le liquide est dessiné à part).</summary>
+        public static Sprite ShotGlass { get { return Load("verre_shot", MakeShotGlass); } }
+        /// <summary>Comptoir en bois (étiré en largeur).</summary>
+        public static Sprite Counter { get { return Load("comptoir", MakeCounter); } }
+
         public static Sprite Germ(int variant)
         {
             variant = Mathf.Abs(variant) % 3;
@@ -197,6 +204,58 @@ namespace FannyIn2Trom
             // bouche
             p.Arc(64, 52, 12, 4, 200, 340, new Color(0.15f, 0.25f, 0.1f));
             return p.ToSprite("germ" + v);
+        }
+
+        static Sprite MakeBottle()
+        {
+            var p = new Painter(180, 440);
+            Color glass = new Color(0.62f, 0.33f, 0.08f), dark = new Color(0.30f, 0.15f, 0.03f);
+            // contour
+            p.RoundRect(90, 150, 70, 146, 34, dark);
+            p.Ellipse(90, 290, 52, 34, dark);
+            p.RoundRect(90, 352, 26, 70, 10, dark);
+            // verre ambré
+            p.RoundRect(90, 150, 64, 140, 30, glass);
+            p.Ellipse(90, 290, 46, 29, glass);
+            p.RoundRect(90, 352, 20, 66, 8, glass);
+            // bouchon
+            p.RoundRect(90, 420, 22, 18, 5, new Color(0.80f, 0.62f, 0.40f));
+            // reflets
+            p.RoundRect(52, 160, 7, 110, 6, new Color(1f, 1f, 1f, 0.35f));
+            p.RoundRect(80, 350, 4, 50, 3, new Color(1f, 1f, 1f, 0.3f));
+            // étiquette + bandes du drapeau breton (Gwenn-ha-du)
+            p.RoundRect(90, 140, 58, 70, 8, new Color(0.96f, 0.92f, 0.80f));
+            for (int i = 0; i < 5; i++) p.Rect(36, 178 + i * 6, 144, 181 + i * 6, i % 2 == 0 ? Color.black : Color.white);
+            p.Rect(36, 98, 144, 101, new Color(0.15f, 0.15f, 0.15f));
+            return p.ToSprite("bouteille_chouchen");
+        }
+
+        static Sprite MakeShotGlass()
+        {
+            var p = new Painter(120, 160);
+            Color edge = new Color(1f, 1f, 1f, 0.85f);
+            // corps en verre
+            p.Polygon(new Color(0.85f, 0.93f, 1f, 0.22f), new Vector2(12, 10), new Vector2(108, 10), new Vector2(115, 155), new Vector2(5, 155));
+            // fond épais
+            p.RoundRect(60, 20, 46, 12, 6, new Color(0.9f, 0.96f, 1f, 0.55f));
+            // bords
+            p.Line(6, 154, 12, 10, 4, edge);
+            p.Line(114, 154, 108, 10, 4, edge);
+            p.Line(12, 10, 108, 10, 4, edge);
+            p.Line(5, 155, 115, 155, 3, new Color(1f, 1f, 1f, 0.7f));
+            // reflet
+            p.Line(24, 140, 27, 40, 5, new Color(1f, 1f, 1f, 0.45f));
+            return p.ToSprite("verre_shot");
+        }
+
+        static Sprite MakeCounter()
+        {
+            var p = new Painter(512, 160);
+            p.VerticalGradient(0, 160, new Color(0.30f, 0.17f, 0.08f), new Color(0.52f, 0.31f, 0.15f));
+            p.Rect(0, 140, 512, 160, new Color(0.65f, 0.42f, 0.22f));   // plateau
+            p.Rect(0, 136, 512, 140, new Color(0.25f, 0.13f, 0.05f));
+            for (int i = 0; i < 7; i++) p.Rect(0, 20 + i * 17, 512, 21.5f + i * 17, new Color(0.22f, 0.11f, 0.04f, 0.5f)); // planches
+            return p.ToSprite("comptoir");
         }
 
         /// <summary>Poing qui agrippe une barre verticale (la barre passe au milieu).</summary>

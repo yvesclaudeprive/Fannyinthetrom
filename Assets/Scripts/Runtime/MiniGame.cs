@@ -107,6 +107,69 @@ namespace FannyIn2Trom
             Destroy(t.gameObject);
         }
 
+        // ------------------------------------------------------------- vomi
+
+        class Drop { public RectTransform rt; public Vector2 v; }
+
+        /// <summary>Fanny vomit depuis la position "mouth" ; "head" (optionnel) est secouée pendant le jet.</summary>
+        protected IEnumerator Vomit(Vector2 mouth, RectTransform head, Vector2 headPos)
+        {
+            float floorY = -Size.y * 0.5f + 60f;
+            Color[] colors =
+            {
+                new Color(0.62f, 0.72f, 0.18f), new Color(0.78f, 0.74f, 0.25f),
+                new Color(0.50f, 0.62f, 0.15f), new Color(0.85f, 0.80f, 0.40f)
+            };
+            var puddle = UIKit.Image("Flaque", Root, Art.Circle, Vector2.zero, new Vector2(mouth.x, floorY), new Color(0.62f, 0.7f, 0.2f, 0.95f));
+            var drops = new System.Collections.Generic.List<Drop>();
+            float puddleW = 0f;
+            bool splashed = false;
+
+            Sfx.Play(Sfx.Vomit);
+            Sfx.Vibrate();
+            Pop("BLEUUAARGH !", mouth + new Vector2(430f, 180f), new Color(0.7f, 1f, 0.3f), 96);
+
+            const float spew = 1.3f, total = 2.3f;
+            float spawnAcc = 0f;
+            for (float e = 0f; e < total; e += Time.deltaTime)
+            {
+                float dt = Time.deltaTime;
+                if (e < spew)
+                {
+                    spawnAcc += dt * 110f;
+                    while (spawnAcc >= 1f)
+                    {
+                        spawnAcc -= 1f;
+                        float size = Random.Range(26f, 66f);
+                        var img = UIKit.Image("Vomi", Root, Art.Circle, new Vector2(size * 1.3f, size), mouth + new Vector2(Random.Range(-25f, 25f), 0f),
+                            colors[Random.Range(0, colors.Length)]);
+                        drops.Add(new Drop { rt = img.rectTransform, v = new Vector2(Random.Range(-160f, 160f), Random.Range(-420f, 80f)) });
+                    }
+                    if (head != null) head.anchoredPosition = headPos + new Vector2(Mathf.Sin(e * 30f) * 8f, -Mathf.Sin(e * 9f) * 10f);
+                }
+                for (int i = drops.Count - 1; i >= 0; i--)
+                {
+                    var d = drops[i];
+                    d.v.y -= 2600f * dt;
+                    d.rt.anchoredPosition += d.v * dt;
+                    d.rt.localRotation = Quaternion.Euler(0, 0, Mathf.Atan2(d.v.y, d.v.x) * Mathf.Rad2Deg);
+                    if (d.rt.anchoredPosition.y <= floorY)
+                    {
+                        puddleW = Mathf.Min(820f, puddleW + 9f);
+                        if (!splashed) { Sfx.Play(Sfx.Splash); splashed = true; }
+                        Destroy(d.rt.gameObject);
+                        drops.RemoveAt(i);
+                    }
+                }
+                puddle.rectTransform.sizeDelta = new Vector2(puddleW, puddleW * 0.17f);
+                yield return null;
+            }
+            foreach (var d in drops) Destroy(d.rt.gameObject);
+            if (head != null) head.anchoredPosition = headPos;
+            Pop("Pauvre Fanny...", new Vector2(0, -Size.y * 0.25f), Color.white, 70);
+            yield return new WaitForSeconds(0.6f);
+        }
+
         protected static float EaseOutBack(float t)
         {
             const float c1 = 1.70158f, c3 = c1 + 1f;
