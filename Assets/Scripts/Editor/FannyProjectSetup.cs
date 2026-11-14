@@ -71,8 +71,16 @@ namespace FannyIn2Trom.EditorTools
             {
                 Directory.CreateDirectory(Path.GetDirectoryName(ScenePath));
                 var active = EditorSceneManager.GetActiveScene();
-                bool replaceActive = string.IsNullOrEmpty(active.path) && !active.isDirty;
-                var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, NewSceneMode.Additive);
+                bool untitled = string.IsNullOrEmpty(active.path);
+                // Unity refuse d'ajouter une scène à côté d'une scène "sans titre" :
+                // dans ce cas (et en mode automatique) on remplace la scène ouverte.
+                bool replaceActive = Application.isBatchMode || (untitled && !active.isDirty);
+                if (!replaceActive && untitled)
+                {
+                    Debug.LogWarning("[Fanny in 2 Trom] Enregistrez ou fermez la scène sans titre en cours, puis menu Fanny > 1. Configurer le projet.");
+                    return;
+                }
+                var scene = EditorSceneManager.NewScene(NewSceneSetup.EmptyScene, replaceActive ? NewSceneMode.Single : NewSceneMode.Additive);
                 // Une caméra simple ; tout le reste (interface, jeu) est créé par le code au lancement.
                 var cam = new GameObject("Main Camera");
                 cam.tag = "MainCamera";
@@ -83,8 +91,7 @@ namespace FannyIn2Trom.EditorTools
                 cam.transform.position = new Vector3(0, 0, -10);
                 EditorSceneManager.MoveGameObjectToScene(cam, scene);
                 EditorSceneManager.SaveScene(scene, ScenePath);
-                if (replaceActive) EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
-                else EditorSceneManager.CloseScene(scene, true);
+                if (!replaceActive) EditorSceneManager.CloseScene(scene, true);
                 AssetDatabase.Refresh();
             }
             EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
