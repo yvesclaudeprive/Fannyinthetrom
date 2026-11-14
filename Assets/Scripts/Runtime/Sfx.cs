@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using UnityEngine;
 
 namespace FannyIn2Trom
@@ -20,11 +21,29 @@ namespace FannyIn2Trom
         /// <summary>Air breton (bombarde + biniou + tambour), en boucle.</summary>
         public static AudioClip MusicBretagne;
 
+#if UNITY_IOS && !UNITY_EDITOR
+        [DllImport("__Internal")] static extern void FannySetPlaybackAudio();
+#endif
+
+        /// <summary>Sur iPhone : le son joue même en mode silencieux (catégorie audio "Playback").</summary>
+        public static void ForceSoundEvenWhenMuted()
+        {
+#if UNITY_IOS && !UNITY_EDITOR
+            FannySetPlaybackAudio();
+#endif
+        }
+
         public static void Init(GameObject host)
         {
+            ForceSoundEvenWhenMuted();
+            AudioListener.volume = 1f;
+            AudioListener.pause = false;
             source = host.AddComponent<AudioSource>();
             source.playOnAwake = false;
+            source.spatialBlend = 0f;
+            source.volume = 1f;
             music = host.AddComponent<AudioSource>();
+            music.spatialBlend = 0f;
             music.playOnAwake = false;
             music.loop = true;
             music.volume = 0.55f;

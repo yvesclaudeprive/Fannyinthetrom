@@ -89,6 +89,7 @@ namespace FannyIn2Trom.EditorTools
                 c.clearFlags = CameraClearFlags.SolidColor;
                 c.backgroundColor = new Color(0.08f, 0.09f, 0.16f);
                 cam.transform.position = new Vector3(0, 0, -10);
+                cam.AddComponent<AudioListener>();
                 EditorSceneManager.MoveGameObjectToScene(cam, scene);
                 EditorSceneManager.SaveScene(scene, ScenePath);
                 if (!replaceActive) EditorSceneManager.CloseScene(scene, true);

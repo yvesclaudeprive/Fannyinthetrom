@@ -68,9 +68,26 @@ namespace FannyIn2Trom
             Camera.main.backgroundColor = new Color(0.08f, 0.09f, 0.16f);
             Camera.main.orthographic = true;
 
+            EnsureAudioListener();
             BuildCanvas();
             Sfx.Init(gameObject);
             StartCoroutine(MainLoop());
+        }
+
+        /// <summary>Sans AudioListener, Unity ne joue aucun son : on en garantit un (et un seul).</summary>
+        void EnsureAudioListener()
+        {
+#if UNITY_2023_1_OR_NEWER
+            var existing = FindFirstObjectByType<AudioListener>();
+#else
+            var existing = FindObjectOfType<AudioListener>();
+#endif
+            if (existing == null) Camera.main.gameObject.AddComponent<AudioListener>();
+        }
+
+        void OnApplicationFocus(bool focus)
+        {
+            if (focus) Sfx.ForceSoundEvenWhenMuted();
         }
 
         void BuildCanvas()
