@@ -51,7 +51,9 @@ namespace FannyIn2Trom
             DontDestroyOnLoad(gameObject);
 
             Application.targetFrameRate = 60;
+#if !(ENABLE_INPUT_SYSTEM && !ENABLE_LEGACY_INPUT_MANAGER)
             Input.multiTouchEnabled = true;
+#endif
             Screen.sleepTimeout = SleepTimeout.NeverSleep;
             LockOrientation(false);
             Screen.orientation = ScreenOrientation.AutoRotation;
@@ -97,7 +99,11 @@ namespace FannyIn2Trom
                 var es = new GameObject("EventSystem");
                 es.transform.SetParent(transform);
                 es.AddComponent<EventSystem>();
+#if ENABLE_INPUT_SYSTEM && !ENABLE_LEGACY_INPUT_MANAGER
+                es.AddComponent<UnityEngine.InputSystem.UI.InputSystemUIInputModule>();
+#else
                 es.AddComponent<StandaloneInputModule>();
+#endif
             }
         }
 

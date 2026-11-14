@@ -39,6 +39,44 @@ Si un message indique que « la gestion des contrôles tactiles a été activée
    (Sur l'iPhone, la première fois : Réglages > Général > VPN et gestion de l'appareil > faire confiance au développeur.)
 5. Pour diffuser à des testeurs : *Product > Archive* puis envoi vers **TestFlight**.
 
+## 3 bis. TestFlight automatique avec GitHub (sans Mac)
+
+Le workflow `.github/workflows/ios-testflight.yml` compile le jeu avec Unity, le signe et l'envoie sur TestFlight. Il se lance depuis l'onglet **Actions** > **iPhone → TestFlight** > **Run workflow**, ou en poussant un tag `v1.0.1`, etc. Chaque lancement produit un nouveau numéro de build.
+
+### À préparer une seule fois
+
+**Côté Apple** (compte Apple Developer) :
+1. **Team ID** : developer.apple.com > Account > *Membership details*. Il s'agit de 10 caractères, ex. `AB12CD34EF`.
+2. **Identifiant de l'app** : *Certificates, Identifiers & Profiles* > *Identifiers* > **+** > *App IDs* > *App*. Choisir *Explicit* et saisir `com.yateo.fannyin2trom`.
+3. **Fiche de l'app** : appstoreconnect.apple.com > *Apps* > **+** > *Nouvelle app*. Renseigner : iOS, nom « Fanny in 2 Trom » (ou une variante si le nom est pris), langue française, identifiant de lot `com.yateo.fannyin2trom`, SKU `fannyin2trom`.
+4. **Clé API** : App Store Connect > *Utilisateurs et accès* > *Intégrations* > *API App Store Connect* > *Clés d'équipe* > **+**. Accès **Admin**, nécessaire pour que la signature soit automatique.
+   - Noter l'**ID de la clé** et l'**ID de l'émetteur** (Issuer ID).
+   - Télécharger le fichier `.p8`. Attention : il n'est téléchargeable qu'une fois.
+
+**Côté Unity** :
+1. Créer un compte sur id.unity.com, avec email et mot de passe et sans double authentification par application.
+2. Sur ton PC : ouvrir Unity Hub, se connecter, puis *Preferences* > *Licenses* > *Add* > *Get a free personal license*.
+3. Ouvrir dans le Bloc-notes le fichier `C:\ProgramData\Unity\Unity_lic.ulf` : son contenu est la licence.
+   > La licence **Personal** est réservée aux structures sous 200 000 $ de chiffre d'affaires annuel. Au-delà, il faut Unity Pro : mettre alors le numéro de série dans `UNITY_SERIAL` au lieu de `UNITY_LICENSE`.
+
+**Côté GitHub** : dans le dépôt, aller dans *Settings* > *Secrets and variables* > *Actions* > *New repository secret* et créer :
+
+| Secret | Valeur |
+|--------|--------|
+| `UNITY_EMAIL` | email du compte Unity |
+| `UNITY_PASSWORD` | mot de passe du compte Unity |
+| `UNITY_LICENSE` | tout le contenu du fichier `Unity_lic.ulf` (ou `UNITY_SERIAL` pour Unity Pro) |
+| `APPLE_TEAM_ID` | Team ID Apple |
+| `APPSTORE_KEY_ID` | ID de la clé API |
+| `APPSTORE_ISSUER_ID` | Issuer ID |
+| `APPSTORE_P8` | tout le contenu du fichier `.p8`, lignes `-----BEGIN/END PRIVATE KEY-----` comprises |
+
+### Ensuite
+- Lancer le workflow. Le premier passage prend environ 40 min, les suivants sont plus rapides grâce au cache.
+- Le build apparaît dans App Store Connect > **TestFlight** après le traitement par Apple (5 à 30 min).
+- S'ajouter comme testeur interne, installer l'app **TestFlight** sur l'iPhone, et c'est parti.
+- Coût : sur un dépôt privé, les minutes macOS de GitHub Actions comptent 10 fois. Une compilation consomme environ 150 à 250 minutes du quota mensuel.
+
 ## 4. Les images (remplaçables)
 
 Toutes les images sont dans `Assets/Resources/Art/`. **Pour en changer une, il suffit de remplacer le fichier en gardant le même nom.** Si une image est absente, le jeu dessine une version provisoire.

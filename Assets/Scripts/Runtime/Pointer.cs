@@ -1,4 +1,7 @@
 using UnityEngine;
+#if ENABLE_INPUT_SYSTEM && !ENABLE_LEGACY_INPUT_MANAGER
+using UnityEngine.InputSystem;
+#endif
 
 namespace FannyIn2Trom
 {
@@ -24,14 +27,34 @@ namespace FannyIn2Trom
 
             bool down = false, held = false, up = false;
             Vector2 screen = Pos;
+#if ENABLE_INPUT_SYSTEM && !ENABLE_LEGACY_INPUT_MANAGER
+            // Nouveau système d'entrées (Input System)
+            var ts = Touchscreen.current;
+            if (ts != null && (ts.primaryTouch.press.isPressed || ts.primaryTouch.press.wasReleasedThisFrame))
+            {
+                var touch = ts.primaryTouch;
+                screen = ToCanvas(touch.position.ReadValue(), canvasScale);
+                down = touch.press.wasPressedThisFrame;
+                up = touch.press.wasReleasedThisFrame;
+                held = touch.press.isPressed;
+            }
+            else if (Mouse.current != null)
+            {
+                var m = Mouse.current;
+                screen = ToCanvas(m.position.ReadValue(), canvasScale);
+                down = m.leftButton.wasPressedThisFrame;
+                held = m.leftButton.isPressed;
+                up = m.leftButton.wasReleasedThisFrame;
+            }
+#else
+            // Ancien système d'entrées (Input Manager)
             if (Input.touchCount > 0)
             {
                 Touch t = Input.GetTouch(0);
-                screen = t.position;
                 down = t.phase == TouchPhase.Began;
                 up = t.phase == TouchPhase.Ended || t.phase == TouchPhase.Canceled;
                 held = !up;
-                screen = ToCanvas(screen, canvasScale);
+                screen = ToCanvas(t.position, canvasScale);
             }
             else if (Input.mousePresent || Input.GetMouseButton(0) || Input.GetMouseButtonUp(0))
             {
@@ -40,6 +63,7 @@ namespace FannyIn2Trom
                 up = Input.GetMouseButtonUp(0);
                 screen = ToCanvas(Input.mousePosition, canvasScale);
             }
+#endif
 
             Delta = down || !Held ? Vector2.zero : screen - Pos;
             Pos = screen;

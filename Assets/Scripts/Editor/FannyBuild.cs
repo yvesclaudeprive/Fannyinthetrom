@@ -1,3 +1,4 @@
+using System;
 using System.IO;
 using UnityEditor;
 using UnityEditor.Build.Reporting;
@@ -46,6 +47,50 @@ namespace FannyIn2Trom.EditorTools
                 EditorUtility.DisplayDialog("Échec de la construction",
                     "La construction a échoué (" + report.summary.totalErrors + " erreur(s)). Voir la Console de Unity.", "OK");
             }
+        }
+
+        // ------------------------------------------------------------------ CI
+
+        /// <summary>
+        /// Utilisé par GitHub Actions (game-ci/unity-builder) : configure le projet,
+        /// applique le numéro de build et génère le projet Xcode.
+        /// Arguments : -customBuildPath &lt;dossier&gt; -buildNumber &lt;n&gt; [-appleTeamId &lt;id&gt;]
+        /// </summary>
+        public static void BuildIOSCI()
+        {
+            string path = Arg("-customBuildPath") ?? "build/iOS/FannyIn2Trom";
+            FannyProjectSetup.Setup(false);
+
+            string buildNumber = Arg("-buildNumber");
+            if (!string.IsNullOrEmpty(buildNumber)) PlayerSettings.iOS.buildNumber = buildNumber;
+            string team = Arg("-appleTeamId");
+            if (!string.IsNullOrEmpty(team))
+            {
+                PlayerSettings.iOS.appleDeveloperTeamID = team;
+                PlayerSettings.iOS.appleEnableAutomaticSigning = true;
+            }
+            AssetDatabase.SaveAssets();
+
+            Directory.CreateDirectory(path);
+            var options = new BuildPlayerOptions
+            {
+                scenes = new[] { FannyProjectSetup.ScenePath },
+                locationPathName = path,
+                target = BuildTarget.iOS,
+                targetGroup = BuildTargetGroup.iOS,
+                options = BuildOptions.None
+            };
+            BuildReport report = BuildPipeline.BuildPlayer(options);
+            Debug.Log("[Fanny in 2 Trom] Build iOS : " + report.summary.result + " (" + report.summary.totalErrors + " erreur(s)) -> " + path);
+            if (report.summary.result != BuildResult.Succeeded) EditorApplication.Exit(1);
+        }
+
+        static string Arg(string name)
+        {
+            string[] args = Environment.GetCommandLineArgs();
+            for (int i = 0; i < args.Length - 1; i++)
+                if (args[i] == name) return args[i + 1];
+            return null;
         }
     }
 }
