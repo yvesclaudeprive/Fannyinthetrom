@@ -61,7 +61,24 @@ namespace FannyIn2Trom
         /// Marine (2e personnage) : marine_face, marine_34_gauche, marine_34_droite, marine_profil_gauche,
         /// marine_profil_droit, marine_surprise, marine_inquiete, marine_pensive, marine_sourire, marine_joie.
         /// </summary>
-        public static Sprite Marine(string view) { return Load("marine_" + view, null); }
+        public static Sprite Marine(string view)
+        {
+            string key;
+            if (!MarineAlias.TryGetValue(view, out key)) key = view;
+            return Load("marine_" + key, null);
+        }
+
+        /// <summary>Séquences animées de Marine : degout (8), nausee (10), mache (10), rire (10), danse (10).</summary>
+        public static Sprite MarineFrame(string seq, int index) { return Load("marine_" + seq + "_" + index, null); }
+
+        // anciens noms de vues -> images de l'export
+        static readonly Dictionary<string, string> MarineAlias = new Dictionary<string, string>
+        {
+            { "face", "degout_1" }, { "pensive", "degout_3" }, { "inquiete", "degout_6" },
+            { "sourire", "rire_5" }, { "joie", "rire_9" }, { "surprise", "nausee_2" },
+            { "34_droite", "nausee_6" }, { "profil_droit", "nausee_6" },
+            { "34_gauche", "nausee_4" }, { "profil_gauche", "nausee_4" },
+        };
 
         /// <summary>Vivier (eau vue de côté), caustiques (texture qui se répète) et surface de l'eau.</summary>
         public static Sprite Vivier { get { return Load("bg_vivier", null); } }

@@ -13,7 +13,7 @@ Jeu iPhone réalisé avec **Unity**. Fanny est capturée au lasso en Bretagne, p
 Le jeu se joue entièrement **à l'horizontale**.
 
 **Deux personnages au choix sur l'écran titre :** Marine à gauche, Fanny à droite.
-- **Marine : « Coup de poisson ! »** On choisit un poisson (sardine, maquereau, saumon ou morue : plus il est lourd, plus il cogne, mais plus il est lent à lancer), on le tient par la queue, on le fait tournoyer et on le fait claquer sur la joue de Marine. Sa tête part sous le choc (vues de 3/4 et de profil), sa joue rougit, ça éclabousse, l'écran tremble. Elle esquive parfois et se moque (« Même pas mal ! »). Quand sa barre d'énergie est vide : la tête tourne, étoiles, cloche de boxe, **K.O. !**
+- **Marine : « Coup de poisson ! »** On choisit un poisson (sardine, maquereau, saumon ou morue : plus il est lourd, plus il cogne, mais plus il est lent à lancer), on le tient par la queue, on le fait tournoyer et on le fait claquer sur la joue de Marine. Sa tête part sous le choc (vues de 3/4 et de profil), sa joue rougit, ça éclabousse, l'écran tremble. Elle esquive parfois et se moque (« Même pas mal ! »). Quand sa barre d'énergie est vide : la tête tourne, étoiles, cloche de boxe, **K.O. !** Pour finir, on lui fait **manger le poisson** : on approche la tête du poisson de sa bouche (elle grimace de plus en plus), elle croque (le poisson raccourcit à chaque bouchée), mâche avec dégoût, puis a un haut-le-cœur.
 - **Fanny :** les 5 épreuves ci-dessous.
 
 Points : rapidité + lassos restants. Le meilleur score est enregistré sur le téléphone.
@@ -96,7 +96,7 @@ Toutes les images sont dans `Assets/Resources/Art/`. **Pour en changer une, il s
 | `fanny_visage_yeux_fermes`, `_bouche`, `_grimace_1`, `_beurk_bouche`, `_beurk_yeux_fermes` | Expressions animées : clignement, bouche qui s'ouvre quand elle crie, grimace légère puis franche | Fabriquées en déformant le visage |
 | `fanny_visage.png` | Gros plan du visage (épreuve 3, portrait dans l'épreuve 2) | Agrandi depuis la planche, donc un peu flou |
 | `bg_metro.jpg` | Rame de métro (épreuves 2 et 3). L'épreuve 2 fait un gros plan sur la grande barre | Ta scène métro |
-| `marine_face.png`, `marine_34_gauche/droite.png`, `marine_profil_gauche/droit.png`, `marine_surprise/inquiete/pensive/sourire/joie.png` | Marine : repos, tête qui tourne sous le coup, surprise, sonnée, moqueuse | Détourées depuis ta planche de visages |
+| `marine_degout_1..8`, `marine_nausee_1..10`, `marine_mache_1..10`, `marine_rire_1..10`, `marine_danse_1..10` | Marine : dégoût progressif (repos → grimace selon son énergie, et quand le poisson approche de sa bouche), nausée (tête rejetée sous les gifles, K.O., arrière-goût), mastication (elle mange le poisson), fou rire (quand elle se moque), danse (quand elle esquive) | Ton export « sprites_visage_3d_complet v3 » : agrandies ×2, liseré blanc retiré, toutes alignées |
 | `main_barre.png` | Bras + main qui glisse sur la barre | Détourée depuis ton gros plan, manche prolongée hors champ |
 | `fanny_visage_beurk.png` | Grimace : dès qu'on lui touche le visage, et à la fin | Fabriquée en déformant le visage (yeux plissés, bouche tordue, teint verdâtre) |
 

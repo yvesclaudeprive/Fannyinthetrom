@@ -49,6 +49,15 @@ namespace FannyIn2Trom
         Text hoverText;
         bool grabbing;
 
+        // --- final : elle mange le poisson
+        bool eatPhase, biting;
+        int bites;
+        Coroutine seqAnim;
+
+        // repères dans les images de Marine (fractions de l'image)
+        static readonly Vector2 FaceCenterOfs = new Vector2(0.006f, 0.04f);   // depuis le centre de l'image
+        static readonly Vector2 MouthOfs = new Vector2(0.006f, -0.088f);
+
         protected override void Build()
         {
             float s;
@@ -57,7 +66,7 @@ namespace FannyIn2Trom
 
             headHome = new Vector2(Size.x * 0.12f, -Size.y * 0.04f);
             face = UIKit.Image("Marine", Root, Art.Marine("face"), Vector2.one, headHome);
-            SetView("face");
+            SetView("degout_1");
 
             // barre d'énergie de Marine (en haut à gauche)
             var bar = UIKit.Image("Energie", Root, Art.RoundedRect, new Vector2(620, 54), new Vector2(-Size.x * 0.5f + 560f, Size.y * 0.5f - 95f), new Color(0, 0, 0, 0.75f));
@@ -310,7 +319,35 @@ namespace FannyIn2Trom
             face.rectTransform.sizeDelta = faceSize;
         }
 
-        string IdleView { get { return energy > 0.6f ? "face" : energy > 0.3f ? "pensive" : "inquiete"; } }
+        string IdleView { get { return energy > 0.6f ? "degout_1" : energy > 0.3f ? "degout_3" : "degout_6"; } }
+
+        /// <summary>Joue une séquence d'images de Marine (ex. "rire" 1..10), puis revient à l'expression du moment.</summary>
+        void PlaySeq(string seq, int[] frames, float fps, float hold = 0.3f)
+        {
+            if (seqAnim != null) StopCoroutine(seqAnim);
+            seqAnim = StartCoroutine(SeqRoutine(seq, frames, fps, hold));
+        }
+
+        IEnumerator SeqRoutine(string seq, int[] frames, float fps, float hold)
+        {
+            viewLeft = frames.Length / fps + hold + 0.05f;
+            foreach (int f in frames)
+            {
+                SetView(seq + "_" + f);
+                yield return new WaitForSeconds(1f / fps);
+            }
+            seqAnim = null;
+        }
+
+        static int[] Range(int a, int b)
+        {
+            var r = new int[Mathf.Abs(b - a) + 1];
+            for (int i = 0; i < r.Length; i++) r[i] = a + (b >= a ? i : -i);
+            return r;
+        }
+
+        Vector2 FaceCenter { get { return face.rectTransform.anchoredPosition + Vector2.Scale(FaceCenterOfs, faceSize); } }
+        Vector2 Mouth { get { return face.rectTransform.anchoredPosition + Vector2.Scale(MouthOfs, faceSize); } }
 
         protected override void Tick(float dt)
         {
@@ -327,19 +364,23 @@ namespace FannyIn2Trom
             Root.anchoredPosition = shake;
 
             if (choosing) { UpdateFishing(dt); return; }
-            if (fish == null || ko) return;
+            if (fish == null) return;
+            if (ko && !eatPhase) return;
 
             // --- la tête de Marine : léger balancement, esquives
             float amp = 0.5f + 0.5f * Difficulty;
             Vector2 sway = new Vector2(Mathf.Sin(t * 0.8f) * 55f, Mathf.Sin(t * 1.1f) * 22f) * amp;
             if (dodgeLeft > 0f) dodgeLeft -= dt; else dodgeOffset = Vector2.Lerp(dodgeOffset, Vector2.zero, dt * 6f);
             dodgeTimer -= dt;
-            face.rectTransform.anchoredPosition = headHome + sway + dodgeOffset + headOffset;
-            face.rectTransform.localRotation = Quaternion.Euler(0, 0, headRot);
+            if (!eatPhase)
+            {
+                face.rectTransform.anchoredPosition = headHome + sway + dodgeOffset + headOffset;
+                face.rectTransform.localRotation = Quaternion.Euler(0, 0, headRot);
+            }
             if (viewLeft > 0f) { viewLeft -= dt; if (viewLeft <= 0f) SetView(IdleView); }
 
             // --- le poisson, tenu par la queue au bout du doigt (pendule)
-            if (!Locked && Pointer.Held) anchor = Pointer.Pos;
+            if ((!Locked || eatPhase) && Pointer.Held) anchor = Pointer.Pos;
             Vector2 vel = (anchor - prevAnchor) / dt;
             Vector2 acc = Vector2.ClampMagnitude((vel - prevVel) / dt, 60000f);
             prevAnchor = anchor;
@@ -360,25 +401,27 @@ namespace FannyIn2Trom
             swooshTimer -= dt;
             if (speed > 1600f && swooshTimer <= 0f) { Sfx.Play(Sfx.Swoosh, 0.7f, Random.Range(0.9f, 1.15f)); swooshTimer = 0.3f; }
 
+            if (eatPhase) { EatTick(dir); return; }
             if (Locked) return;
             cooldown -= dt;
 
             // --- elle esquive parfois un poisson qui arrive vite
-            Vector2 faceCenter = face.rectTransform.anchoredPosition + new Vector2(0f, faceSize.y * 0.05f);
+            Vector2 faceCenter = FaceCenter;
             Vector2 tip = anchor + dir * fishLen;
             if (dodgeTimer <= 0f && speed > 1500f && Vector2.Distance(tip, faceCenter) < 380f && Random.value < 0.12f * Difficulty)
             {
                 dodgeOffset = new Vector2(tip.x < faceCenter.x ? 170f : -170f, -40f);
                 dodgeLeft = 0.35f;
                 dodgeTimer = 1.6f;
-                Pop("Raté !", faceCenter + new Vector2(0f, faceSize.y * 0.55f), Color.white, 60);
+                Pop("Raté !", faceCenter + new Vector2(0f, faceSize.y * 0.45f), Color.white, 60);
                 Sfx.PlayRandom(Sfx.Taunts, 0.9f, 1f);
+                PlaySeq("danse", new[] { 1, 4, 5, 6, 7, 8, 9, 10 }, 14f);
             }
 
             // --- impact sur la joue ?
             if (cooldown <= 0f && speed > MinHitSpeed)
             {
-                float rx = faceSize.x * 0.3f, ry = faceSize.y * 0.32f;
+                float rx = faceSize.x * 0.21f, ry = faceSize.y * 0.3f;
                 for (float k = 0.45f; k <= 1.001f; k += 0.183f)
                 {
                     Vector2 pt = anchor + dir * fishLen * k;
@@ -395,9 +438,9 @@ namespace FannyIn2Trom
             tauntTimer -= dt;
             if (tauntTimer <= 0f && viewLeft <= 0f)
             {
-                SetView(Random.value < 0.5f ? "sourire" : "joie");
-                viewLeft = 1.2f;
+                PlaySeq("rire", Range(1, 10), 12f, 0.5f);
                 Sfx.PlayRandom(Sfx.Taunts, 0.9f, 1f);
+                if (Sfx.Laugh != null && Random.value < 0.5f) Sfx.Play(Sfx.Laugh, 0.7f, 1.2f);
                 string[] mots = { "Même pas mal !", "C'est tout ?", "Tu vises mal !" };
                 Pop(mots[Random.Range(0, mots.Length)], faceCenter + new Vector2(-faceSize.x * 0.7f, faceSize.y * 0.35f), Color.white, 60);
                 tauntTimer = Random.Range(4f, 6f);
@@ -441,7 +484,8 @@ namespace FannyIn2Trom
         IEnumerator HeadSnap(float side, float speed)
         {
             bool strong = speed > 2200f || weight >= 1.5f;
-            SetView(side > 0 ? (strong ? "profil_droit" : "34_droite") : (strong ? "profil_gauche" : "34_gauche"));
+            if (seqAnim != null) { StopCoroutine(seqAnim); seqAnim = null; }
+            SetView(side > 0 ? "nausee_6" : "nausee_4");
             viewLeft = 10f;
             float push = (strong ? 110f : 70f) * side;
             for (float e = 0f; e < 0.07f; e += Time.deltaTime)
@@ -453,7 +497,7 @@ namespace FannyIn2Trom
             }
             yield return new WaitForSeconds(0.14f);
             if (ko) yield break;
-            SetView("surprise");
+            SetView(strong ? "degout_8" : "nausee_2");
             for (float e = 0f; e < 0.3f; e += Time.deltaTime)
             {
                 float k = e / 0.3f;
@@ -505,9 +549,10 @@ namespace FannyIn2Trom
             Locked = true;
             Sfx.Play(Sfx.Bell);
             // la tête tourne sous le choc (elle voit trente-six chandelles)
+            if (seqAnim != null) { StopCoroutine(seqAnim); seqAnim = null; }
             string[] spin = side > 0
-                ? new[] { "34_droite", "profil_droit", "34_droite", "face", "34_gauche", "profil_gauche", "34_gauche", "face" }
-                : new[] { "34_gauche", "profil_gauche", "34_gauche", "face", "34_droite", "profil_droit", "34_droite", "face" };
+                ? new[] { "nausee_6", "danse_4", "nausee_4", "danse_7", "nausee_6", "danse_1", "nausee_4", "nausee_7" }
+                : new[] { "nausee_4", "danse_7", "nausee_6", "danse_4", "nausee_4", "danse_1", "nausee_6", "nausee_7" };
             var stars = new List<RectTransform>();
             for (int i = 0; i < 5; i++) stars.Add(UIKit.Image("Etoile", Root, ArtGross.Star, new Vector2(70, 70), Vector2.zero).rectTransform);
             float total = 2.6f;
@@ -520,7 +565,7 @@ namespace FannyIn2Trom
                 }
                 else
                 {
-                    if (view != "inquiete") { SetView("inquiete"); Sfx.Play(Sfx.VoiceKO); Pop("K.O. !", new Vector2(0f, Size.y * 0.3f), new Color(1f, 0.3f, 0.25f), 150); }
+                    if (view != "nausee_10") { SetView("nausee_10"); Sfx.Play(Sfx.VoiceKO); Pop("K.O. !", new Vector2(0f, Size.y * 0.3f), new Color(1f, 0.3f, 0.25f), 150); }
                     float k = Mathf.Clamp01((e - 1.1f) / 0.9f);
                     face.rectTransform.localRotation = Quaternion.Euler(0, 0, -side * 22f * k + Mathf.Sin(e * 3f) * 4f);
                     face.rectTransform.anchoredPosition = headHome + new Vector2(side * 40f * k, -150f * k * k);
@@ -536,12 +581,99 @@ namespace FannyIn2Trom
                 }
                 yield return null;
             }
-            Finish(true, 500 + Mathf.RoundToInt(TimeLeft * 40f) + (weight < 1f ? 250 : 0));
+            foreach (var st in stars) Destroy(st.gameObject);
+            // … et pour finir, on lui fait manger le poisson !
+            yield return EatFish();
+            Finish(true, 700 + Mathf.RoundToInt(TimeLeft * 40f) + (weight < 1f ? 250 : 0));
+        }
+
+        // ============================================================== repas
+
+        IEnumerator EatFish()
+        {
+            // elle reprend ses esprits
+            for (float e = 0f; e < 0.6f; e += Time.deltaTime)
+            {
+                float k = e / 0.6f;
+                face.rectTransform.anchoredPosition = Vector2.Lerp(face.rectTransform.anchoredPosition, headHome, k);
+                face.rectTransform.localRotation = Quaternion.Lerp(face.rectTransform.localRotation, Quaternion.identity, k);
+                yield return null;
+            }
+            face.rectTransform.anchoredPosition = headHome;
+            face.rectTransform.localRotation = Quaternion.identity;
+            SetView("degout_1");
+            viewLeft = 0f;
+            Pop("Maintenant, fais-lui manger le poisson !", new Vector2(0f, Size.y * 0.36f), new Color(1f, 0.85f, 0.25f), 64);
+            fish.type = Image.Type.Filled;
+            fish.fillMethod = Image.FillMethod.Horizontal;
+            fish.fillOrigin = (int)Image.OriginHorizontal.Right;   // on garde la queue, la tête disparaît bouchée après bouchée
+            fish.fillAmount = 1f;
+            omega *= 0.3f;
+            eatPhase = true;
+            while (bites < 3) yield return null;
+            eatPhase = false;
+            yield return new WaitForSeconds(0.2f);
+            // l'arrière-goût : dégoût intense, haut-le-cœur
+            Sfx.PlayRandom(Sfx.Beurks, 1f, 1.05f);
+            Pop("BEURK !!!", Mouth + new Vector2(faceSize.x * 0.45f, 160f), new Color(0.7f, 1f, 0.35f), 100);
+            foreach (int f in Range(1, 10))
+            {
+                SetView("nausee_" + f);
+                if (f == 5) Sfx.PlayRandom(Sfx.Beurks, 0.9f, 0.95f);
+                face.rectTransform.anchoredPosition = headHome + new Vector2(Mathf.Sin(f * 2.1f) * 12f, f % 3 == 0 ? 10f : 0f);
+                yield return new WaitForSeconds(0.13f);
+            }
+            face.rectTransform.anchoredPosition = headHome;
+            yield return new WaitForSeconds(0.5f);
+        }
+
+        void EatTick(Vector2 dir)
+        {
+            if (biting) return;
+            Vector2 tip = anchor + dir * fishLen * fish.fillAmount;   // la tête du poisson
+            float d = Vector2.Distance(tip, Mouth);
+            // plus le poisson approche, plus elle fait la grimace
+            if (viewLeft <= 0f)
+            {
+                int frame = 1 + Mathf.Clamp(Mathf.RoundToInt(Mathf.InverseLerp(500f, 90f, d) * 7f), 0, 7);
+                SetView("degout_" + frame);
+            }
+            if (d < faceSize.x * 0.09f + 25f) StartCoroutine(Bite());
+        }
+
+        IEnumerator Bite()
+        {
+            biting = true;
+            SetView("mache_2");                                   // bouche ouverte
+            Sfx.Play(Sfx.Crunch, 1f, Random.Range(0.9f, 1.1f));
+            Sfx.Vibrate();
+            string[] mots = { "CROC !", "SCRUNCH !", "CRAAC !" };
+            Pop(mots[bites % mots.Length], Mouth + new Vector2(-faceSize.x * 0.45f, 120f), new Color(1f, 0.5f, 0.4f), 96);
+            fish.fillAmount = Mathf.Max(0f, fish.fillAmount - 0.32f);
+            anchor += new Vector2(0f, -140f);                      // le poisson est arraché de sa bouche
+            omega += Random.Range(-3f, 3f);
+            yield return new WaitForSeconds(0.15f);
+            // elle mâche… avec dégoût
+            int[] chew = Range(1, 10);
+            for (int i = 0; i < chew.Length; i++)
+            {
+                SetView((i == 4 || i == 7) ? "degout_7" : "mache_" + chew[i]);
+                if (i % 3 == 0) Sfx.PlayRandom(Sfx.Chews, 0.9f, Random.Range(0.9f, 1.05f));
+                if (i == 5) Pop(bites == 0 ? "Beurk…" : bites == 1 ? "C'est cru !" : "Glups…", Mouth + new Vector2(faceSize.x * 0.5f, 60f), Color.white, 58);
+                face.rectTransform.localScale = new Vector3(1f + (i % 2) * 0.01f, 1f - (i % 2) * 0.012f, 1f);
+                yield return new WaitForSeconds(0.12f);
+            }
+            face.rectTransform.localScale = Vector3.one;
+            Sfx.PlayRandom(Sfx.Glous, 0.9f, 1f);
+            bites++;
+            if (bites >= 3) fish.gameObject.SetActive(false);
+            viewLeft = 0f;
+            biting = false;
         }
 
         protected override IEnumerator OnTimeUp()
         {
-            SetView("joie");
+            PlaySeq("rire", Range(1, 10), 10f, 1f);
             Sfx.PlayRandom(Sfx.Taunts, 1f, 1f);
             Pop("Marine tient bon !", Vector2.zero, new Color(1f, 0.45f, 0.4f), 96);
             yield return new WaitForSeconds(1.2f);
