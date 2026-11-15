@@ -147,18 +147,37 @@ namespace FannyIn2Trom
 
         // =============================================================== poissons
 
-        public struct FishInfo { public string name, desc; public float weight; }
+        public struct FishInfo { public string name, desc, key; public float weight, fps; }
 
+        /// <summary>Les poissons du vivier, du plus léger au plus lourd (key = nom des images poisson_key_1..n).</summary>
         public static readonly FishInfo[] Fishes =
         {
-            new FishInfo { name = "La sardine", desc = "Légère et rapide", weight = 0.6f },
-            new FishInfo { name = "Le maquereau", desc = "Le classique", weight = 1.0f },
-            new FishInfo { name = "Le saumon", desc = "Lourd et visqueux", weight = 1.5f },
-            new FishInfo { name = "La morue", desc = "Énorme, ça va faire mal", weight = 2.1f },
+            new FishInfo { name = "La truite", desc = "Souple et nerveuse", key = "truite", weight = 0.8f, fps = 14f },
+            new FishInfo { name = "La perche", desc = "Piquante", key = "perche", weight = 1.2f, fps = 11f },
+            new FishInfo { name = "La carpe", desc = "Énorme, ça va faire mal", key = "carpe", weight = 2.0f, fps = 9f },
         };
 
-        /// <summary>Poisson de profil, tête à gauche, queue à droite (on le tient par la queue).</summary>
-        public static Sprite Fish(int type) { return Get("poisson_" + (type + 1), () => MakeFish(type)); }
+        static readonly Dictionary<int, Sprite[]> fishFrames = new Dictionary<int, Sprite[]>();
+
+        /// <summary>Images de l'animation du poisson (tête à gauche, queue à droite), toutes de la même taille.</summary>
+        public static Sprite[] FishFrames(int type)
+        {
+            Sprite[] f;
+            if (fishFrames.TryGetValue(type, out f)) return f;
+            var list = new List<Sprite>();
+            for (int i = 1; i <= 40; i++)
+            {
+                if (Resources.Load<Texture2D>("Art/poisson_" + Fishes[type].key + "_" + i) == null) break;
+                list.Add(Get("poisson_" + Fishes[type].key + "_" + i, null));
+            }
+            if (list.Count == 0) list.Add(Get("~poisson_" + type, () => MakeFish(type)));
+            f = list.ToArray();
+            fishFrames[type] = f;
+            return f;
+        }
+
+        /// <summary>Poisson de profil, tête à gauche, queue à droite (première image de l'animation).</summary>
+        public static Sprite Fish(int type) { return FishFrames(type)[0]; }
 
         static Sprite MakeFish(int type)
         {

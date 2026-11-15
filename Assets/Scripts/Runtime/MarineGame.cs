@@ -53,16 +53,21 @@ namespace FannyIn2Trom
         // --- la main qui tient le poisson (gifles et repas)
         HandRig holder;
         float handRot, armLean;
-        const float GripFrac = 0.9f;          // le poisson est tenu au ras de la queue
+        float gripFrac = 0.8f;                 // le poisson est pincé au pédoncule, juste avant la nageoire de queue
         int hits;
 
         // --- final : elle mange le poisson
         bool eatPhase, biting;
+        // le poisson dans la bouche
+        RectTransform mouthClip;               // le poisson n'est visible qu'à droite de la commissure des lèvres
+        Vector2 mouthCur, chewOfs;
+        float hangAngle = -20f, mouthAlong, tailWhip;
+        bool inMouth;
         Coroutine seqAnim;
 
         // repères dans les images de Marine (fractions de l'image)
         static readonly Vector2 FaceCenterOfs = new Vector2(0.006f, 0.04f);   // depuis le centre de l'image
-        static readonly Vector2 MouthOfs = new Vector2(0.006f, -0.088f);
+        static readonly Vector2 MouthOfs = new Vector2(0.005f, -0.085f);
 
         /// <summary>
         /// Une main qui SERRE un poisson : le bout des doigts, le poisson et le reste de la main
@@ -166,7 +171,7 @@ namespace FannyIn2Trom
                 caust2 = Caustic("Caustiques2", tex, 0.16f);
             }
             // poissons qui nagent (du plus loin au plus près)
-            int[] types = { 3, 0, 1, 2, 0, 1 };
+            int[] types = { 2, 0, 1, 0, 2, 1 };
             for (int i = 0; i < types.Length; i++) AddSwimmer(types[i], i);
             // surface de l'eau
             var stex = Art.SurfaceEau;
@@ -206,8 +211,8 @@ namespace FannyIn2Trom
 
         void AddSwimmer(int type, int index)
         {
-            float[] lens = { 250f, 340f, 440f, 520f };
-            float[] speeds = { 380f, 280f, 190f, 130f };
+            float[] lens = { 400f, 330f, 480f };
+            float[] speeds = { 300f, 220f, 150f };
             var spr = ArtGross.Fish(type);
             var sw = new Swimmer { type = type };
             sw.size = new Vector2(lens[type], lens[type] * spr.rect.height / spr.rect.width);
@@ -217,10 +222,11 @@ namespace FannyIn2Trom
             sw.speed = speeds[type] * Random.Range(0.85f, 1.15f);
             sw.phase = Random.Range(0f, 10f);
             sw.img = WigglyFish.Create("Poisson" + index, fishing, spr, sw.size, sw.pos);
-            // en nageant, c'est la queue qui bat (plus vite pour les petits)
+            // en nageant, le corps ondule (vraie animation image par image) et la queue bat
+            sw.img.SetFrames(ArtGross.FishFrames(type), ArtGross.Fishes[type].fps * 0.6f, type);
             sw.img.freeHead = false;
-            sw.img.amplitude = 0.14f;
-            sw.img.frequency = new[] { 4.5f, 3.2f, 2.4f, 1.8f }[type];
+            sw.img.amplitude = 0.03f;
+            sw.img.frequency = 2.5f;
             sw.img.waves = 1.0f;
             // un peu bleuté par l'eau, plus sombre au fond
             float depth = Mathf.InverseLerp(Size.y * 0.3f, -Size.y * 0.3f, sw.baseY);
@@ -291,6 +297,7 @@ namespace FannyIn2Trom
                 }
                 sw.flee -= dt;
                 float spd = sw.speed * (sw.flee > 0f ? 2.6f : 1f);
+                sw.img.fps = ArtGross.Fishes[sw.type].fps * (sw.flee > 0f ? 1.5f : 0.6f);
                 sw.phase += dt * spd / 60f;
                 sw.pos.x += sw.dir * spd * dt;
                 sw.pos.y = sw.baseY + Mathf.Sin(sw.phase * 0.35f) * 40f;
@@ -351,11 +358,12 @@ namespace FannyIn2Trom
             fishRt.localScale = Vector3.one;
             caught.color = Color.white;
             hand.Hold(fishRt, false);
-            fishRt.pivot = new Vector2(0.6f, 0.5f);                 // pris un peu en arrière du milieu
+            caught.holdAlong = 0.55f;                               // pris un peu en arrière du milieu (le pivot suit le corps)
             float holdRot = FishingHandRot + Art.FishGripAngle;      // axe du poisson dans la main
             caught.freeHead = true;
-            caught.amplitude = 0.34f;
-            caught.frequency = 10f;
+            caught.amplitude = 0.12f;
+            caught.frequency = 9f;
+            caught.fps = ArtGross.Fishes[target.type].fps * 1.7f;   // il se tortille comme un fou
             caught.waves = 0.8f;
             for (float e = 0f; e < 0.12f; e += Time.deltaTime)
             {
@@ -440,12 +448,14 @@ namespace FannyIn2Trom
             fishLen = Size.y * (0.42f + 0.06f * weight);
             float fishH = fishLen * spr.rect.height / spr.rect.width;
             fish = WigglyFish.Create("Poisson", Root, spr, new Vector2(fishLen, fishH), Vector2.zero);
-            // tenu par la queue, il frétille de toutes ses forces
+            // tenu par la queue, il se tortille (animation image par image) et la tête fouette l'air
+            fish.SetFrames(ArtGross.FishFrames(type), ArtGross.Fishes[type].fps, type);
             fish.freeHead = true;
-            fish.amplitude = 0.32f;
+            fish.amplitude = 0.1f;
             fish.frequency = 6.5f;
             fish.waves = 0.9f;
-            fish.rectTransform.pivot = new Vector2(GripFrac, 0.5f);   // pincé juste avant la nageoire de queue
+            gripFrac = Mathf.Clamp(FishData.Peduncle[Mathf.Min(type, FishData.Peduncle.Length - 1)] + 0.02f, 0.7f, 0.9f);
+            fish.holdAlong = gripFrac;                               // pincé au pédoncule, le pivot suit le corps
             // la main du joueur (qui arrive d'en bas à droite) : les doigts se referment sur la queue
             holder = HandRig.Create(Root, Art.HandWidthInBars * 80f, true);
             holder.Hold(fish.rectTransform, true);
@@ -495,7 +505,27 @@ namespace FannyIn2Trom
         }
 
         Vector2 FaceCenter { get { return face.rectTransform.anchoredPosition + Vector2.Scale(FaceCenterOfs, faceSize); } }
-        Vector2 Mouth { get { return face.rectTransform.anchoredPosition + Vector2.Scale(MouthOfs, faceSize); } }
+        Vector2 Mouth { get { return face.rectTransform.anchoredPosition + MouthLocal(view); } }
+
+        /// <summary>Décalage (en pixels de l'image 760×740) de la bouche selon l'expression : sur certaines images
+        /// la tête bouge un peu, la bouche n'est pas toujours au même endroit.</summary>
+        static readonly Dictionary<string, Vector2> MouthShift = new Dictionary<string, Vector2>
+        {
+            { "mache_1", new Vector2(-5, 0) }, { "mache_2", new Vector2(0, 12) }, { "mache_4", new Vector2(0, -3) },
+            { "mache_5", new Vector2(-5, 2) }, { "mache_6", new Vector2(0, 20) }, { "mache_7", new Vector2(5, 15) },
+            { "mache_8", new Vector2(0, 18) }, { "mache_9", new Vector2(0, 22) }, { "mache_10", new Vector2(0, 20) },
+            { "degout_5", new Vector2(0, 15) }, { "degout_6", new Vector2(0, 25) }, { "degout_7", new Vector2(0, 25) },
+            { "degout_8", new Vector2(0, 20) }, { "nausee_1", new Vector2(0, 10) }, { "nausee_2", new Vector2(0, 5) },
+            { "nausee_7", new Vector2(0, 22) }, { "nausee_8", new Vector2(40, 25) },
+        };
+
+        /// <summary>Position de la bouche dans le repère du visage pour une expression donnée.</summary>
+        Vector2 MouthLocal(string v)
+        {
+            Vector2 px;
+            if (!MouthShift.TryGetValue(v, out px)) px = Vector2.zero;
+            return Vector2.Scale(new Vector2(MouthOfs.x + px.x / 760f, MouthOfs.y - px.y / 740f), faceSize);
+        }
 
         protected override void Tick(float dt)
         {
@@ -548,7 +578,7 @@ namespace FannyIn2Trom
 
             Vector2 dir = new Vector2(Mathf.Sin(theta), -Mathf.Cos(theta));
             Vector2 perp = new Vector2(Mathf.Cos(theta), Mathf.Sin(theta));
-            Vector2 tipVel = vel + perp * omega * fishLen * GripFrac;
+            Vector2 tipVel = vel + perp * omega * fishLen * gripFrac;
             float speed = tipVel.magnitude;
 
             swooshTimer -= dt;
@@ -560,7 +590,7 @@ namespace FannyIn2Trom
 
             // --- elle esquive parfois un poisson qui arrive vite
             Vector2 faceCenter = FaceCenter;
-            Vector2 tip = anchor + dir * fishLen * GripFrac;
+            Vector2 tip = anchor + dir * fishLen * gripFrac;
             if (dodgeTimer <= 0f && speed > 1500f && Vector2.Distance(tip, faceCenter) < 380f && Random.value < 0.12f * Difficulty)
             {
                 dodgeOffset = new Vector2(tip.x < faceCenter.x ? 170f : -170f, -40f);
@@ -577,7 +607,7 @@ namespace FannyIn2Trom
                 float rx = faceSize.x * 0.21f, ry = faceSize.y * 0.3f;
                 for (float k = 0.45f; k <= 1.001f; k += 0.183f)
                 {
-                    Vector2 pt = anchor + dir * fishLen * GripFrac * k;
+                    Vector2 pt = anchor + dir * fishLen * gripFrac * k;
                     Vector2 d = pt - faceCenter;
                     if ((d.x * d.x) / (rx * rx) + (d.y * d.y) / (ry * ry) <= 1f)
                     {
@@ -802,134 +832,211 @@ namespace FannyIn2Trom
         void EatTick(Vector2 dir)
         {
             if (biting) return;
-            Vector2 tip = anchor + dir * fishLen * GripFrac;   // la tête du poisson
+            Vector2 tip = anchor + dir * fishLen * gripFrac;   // la tête du poisson
             float d = Vector2.Distance(tip, Mouth);
             // plus le poisson approche, plus elle fait la grimace (elle recule même un peu)
-            float near = Mathf.InverseLerp(520f, 90f, d);
+            float near = Mathf.InverseLerp(560f, 110f, d);
             int frame = 1 + Mathf.Clamp(Mathf.RoundToInt(near * 7f), 0, 7);
-            SetView("degout_" + frame);
-            face.rectTransform.anchoredPosition = headHome + new Vector2(-near * 25f, near * 10f);
+            SetView(near > 0.93f ? "nausee_1" : "degout_" + frame);
+            face.rectTransform.anchoredPosition = headHome + new Vector2(-near * 30f, near * 12f) + new Vector2(Mathf.Sin(t * 30f), 0f) * near * 4f;
             if (d < faceSize.x * 0.1f + 30f) StartCoroutine(EatSequence());
         }
 
-        /// <summary>Elle croque la tête, la main lâche, elle mâche avec la queue qui frétille hors de la bouche,
-        /// aspire le reste, avale… et recrache l'arête.</summary>
+        /// <summary>Tant que le poisson est dans sa bouche : il sort par la commissure des lèvres (tout ce qui est
+        /// à gauche est « dans la bouche », effacé en fondu), suit la bouche d'une image à l'autre, la mâchoire
+        /// le secoue et la queue bat.</summary>
+        IEnumerator MouthFollow()
+        {
+            var frt = fish.rectTransform;
+            while (inMouth && fish != null)
+            {
+                float dt = Time.deltaTime;
+                mouthCur = Vector2.Lerp(mouthCur, MouthLocal(view), 1f - Mathf.Exp(-dt * 30f));
+                PlaceInMouth(frt);
+                tailWhip += dt * (5f + fish.fps * 0.5f);
+                frt.localRotation = Quaternion.Euler(0, 0, hangAngle + Mathf.Sin(tailWhip) * (3f + fish.fps * 0.25f));
+                yield return null;
+            }
+        }
+
+        void PlaceInMouth(RectTransform frt)
+        {
+            mouthClip.anchoredPosition = mouthCur;
+            mouthClip.sizeDelta = faceSize;
+            fish.holdAlong = mouthAlong;
+            frt.anchoredPosition = chewOfs;
+        }
+
+        /// <summary>Coup de mâchoire : le poisson est tiré vers l'intérieur d'un coup sec.</summary>
+        IEnumerator JawPull(float amount, float dur)
+        {
+            float a0 = mouthAlong, a1 = mouthAlong + amount;
+            for (float e = 0f; e < dur; e += Time.deltaTime)
+            {
+                float k = e / dur;
+                mouthAlong = Mathf.Lerp(a0, a1, 1f - (1f - k) * (1f - k));
+                chewOfs = new Vector2(-5f * Mathf.Sin(k * Mathf.PI), -7f * Mathf.Sin(k * Mathf.PI));
+                yield return null;
+            }
+            mouthAlong = a1;
+            chewOfs = Vector2.zero;
+        }
+
+        /// <summary>Elle croque la tête, la main lâche, le poisson glisse dans sa bouche ; elle mâche
+        /// (il est avalé par à-coups, la queue frétille de moins en moins), l'aspire, l'avale… et recrache l'arête.</summary>
         IEnumerator EatSequence()
         {
             biting = true;
             var frt = fish.rectTransform;
 
-            // 1. elle ouvre grand et CROC : elle attrape la tête
+            // 1. elle ouvre la bouche et CROC : elle attrape la tête
             SetView("mache_2");
             Sfx.Play(Sfx.Crunch, 1f, Random.Range(0.9f, 1.05f));
             Sfx.Vibrate();
+            shakeLeft = 0.12f;
             Pop("CROC !", Mouth + new Vector2(-faceSize.x * 0.5f, 140f), new Color(1f, 0.5f, 0.4f), 100);
 
-            // le poisson passe dans sa bouche : la tête disparaît, la queue dépasse
-            float rotWorld = frt.localEulerAngles.z;
-            frt.SetParent(face.transform, false);
-            fish.Fill = 0.72f;
-            fish.cutShade = 1f;
-            fish.freeHead = false;            // tenu par la bouche : c'est la queue qui bat
-            fish.amplitude = 0.36f;
-            fish.frequency = 9f;
+            // le poisson passe dans sa bouche : il est désormais tenu par la bouche
+            float rot0 = frt.localEulerAngles.z;
+            Vector3 s0 = frt.localScale;
+            mouthCur = MouthLocal(view);
+            mouthClip = UIKit.Rect("Bouche", face.transform);
+            mouthClip.pivot = new Vector2(0f, 0.5f);
+            mouthClip.sizeDelta = faceSize;
+            mouthClip.anchoredPosition = mouthCur;
+            var clip = mouthClip.gameObject.AddComponent<RectMask2D>();
+#if UNITY_2020_1_OR_NEWER
+            clip.softness = new Vector2Int(Mathf.RoundToInt(faceSize.x * 0.02f), 0);   // le poisson sort des lèvres en fondu
+#endif
+            frt.SetParent(mouthClip, false);
+            fish.Fill = 1f;
+            mouthAlong = 0f;
+            fish.holdAlong = 0f;
+            frt.anchoredPosition = Vector2.zero;
+            frt.localRotation = Quaternion.Euler(0, 0, rot0);
+            fish.freeHead = false;               // tenu par la bouche : c'est la queue qui bat
+            fish.amplitude = 0.06f;
+            fish.frequency = 8f;
             fish.waves = 0.8f;
-            frt.pivot = new Vector2(1f - fish.Fill, 0.5f);
-            Vector2 mouthLocal = Vector2.Scale(MouthOfs, faceSize) + new Vector2(faceSize.x * 0.02f, 0f);
-            frt.anchoredPosition = mouthLocal;
-            frt.localRotation = Quaternion.Euler(0, 0, rotWorld);
-
-            // la main lâche la queue et repart en bas à droite
+            fish.fps = ArtGross.Fishes[fishType].fps * 1.8f;   // il se débat
+            inMouth = true;
             StartCoroutine(HandLetsGo());
 
-            // la tête de Marine accuse le coup, le poisson retombe et pend hors de sa bouche
-            const float hang = -58f;
-            for (float e = 0f; e < 0.55f; e += Time.deltaTime)
+            // elle l'engloutit : le corps disparaît dans sa bouche (joues gonflées), la queue bascule et pend
+            float[] lens = { 0.46f, 0.42f, 0.42f };
+            float scaleIn = Mathf.Clamp(faceSize.y * lens[Mathf.Min(fishType, 2)] / fishLen, 0.45f, 1f);
+            for (float e = 0f; e < 0.45f; e += Time.deltaTime)
             {
-                float k = e / 0.55f;
-                float bounce = Mathf.Sin(k * Mathf.PI * 2.5f) * (1f - k) * 18f;
-                frt.localRotation = Quaternion.Euler(0, 0, Mathf.LerpAngle(rotWorld, hang, 1f - (1f - k) * (1f - k)) + bounce);
-                face.rectTransform.anchoredPosition = headHome + new Vector2(0f, -18f * Mathf.Sin(k * Mathf.PI));
+                float k = e / 0.45f, ease = 1f - (1f - k) * (1f - k);
+                mouthAlong = Mathf.Lerp(0f, 0.62f, ease);
+                frt.localScale = Vector3.Lerp(s0, Vector3.one * scaleIn, ease);
+                float bounce = Mathf.Sin(k * Mathf.PI * 2.5f) * (1f - k) * 14f;
+                frt.localRotation = Quaternion.Euler(0, 0, Mathf.LerpAngle(rot0, hangAngle, ease) + bounce);
+                face.rectTransform.localScale = new Vector3(1f + 0.03f * Mathf.Sin(k * Mathf.PI), 1f, 1f);
+                face.rectTransform.anchoredPosition = headHome + new Vector2(0f, -16f * Mathf.Sin(k * Mathf.PI));
+                PlaceInMouth(frt);
                 yield return null;
             }
+            face.rectTransform.localScale = Vector3.one;
             face.rectTransform.anchoredPosition = headHome;
+            StartCoroutine(MouthFollow());
             SetView("nausee_1");
             Sfx.PlayRandom(Sfx.Beurks, 0.8f, 1.1f);
-            yield return new WaitForSeconds(0.35f);
+            Pop("Mmmpf !!", Mouth + new Vector2(-faceSize.x * 0.5f, 60f), Color.white, 64);
+            yield return new WaitForSeconds(0.45f);
 
-            // 2. elle mâche (3 fois), la queue frétille et rentre petit à petit
+            // 2. elle mâche (3 fois) : à chaque coup de mâchoire le poisson rentre un peu, il se débat de moins en moins
             string[][] lines = {
                 new[] { "Beurk…", "C'est cru !" },
-                new[] { "Il bouge encore !!", "Mmmpf…" },
+                new[] { "Il bouge encore !!", "Ça gigote…" },
                 new[] { "Ça croque…", "Les arêtes !" } };
-            float[] fills = { 0.72f, 0.55f, 0.4f, 0.26f };
+            int[] chew = { 1, 3, 4, 3, 1, 2, 1, 3, 4, 5 };   // la bouche s'ouvre et se ferme
             for (int round = 0; round < 3; round++)
             {
-                int[] chew = Range(1, 10);
+                fish.fps = ArtGross.Fishes[fishType].fps * (1.6f - round * 0.4f);
+                fish.amplitude = 0.08f - round * 0.02f;
                 for (int i = 0; i < chew.Length; i++)
                 {
-                    float k = (i + 1f) / chew.Length;
-                    bool flash = (i == 4 && round != 1) || (i == 7 && round == 1);
+                    bool flash = (round == 0 && i == 6) || (round == 1 && i == 4) || (round == 2 && i == 7);
                     SetView(flash ? (round == 2 ? "degout_8" : "degout_7") : "mache_" + chew[i]);
-                    if (i % 2 == 0) Sfx.PlayRandom(Sfx.Chews, 0.95f, Random.Range(0.9f, 1.05f));
-                    if (i == 2) Sfx.Play(Sfx.Crunch, 0.5f, Random.Range(1.2f, 1.4f));
-                    if (i == 3) Pop(lines[round][0], Mouth + new Vector2(faceSize.x * 0.55f, 80f), Color.white, 58);
+                    if (chew[i] == 1 && i > 0)
+                    {
+                        // la mâchoire se referme : CRONCH, le poisson est tiré vers l'intérieur
+                        Sfx.PlayRandom(Sfx.Chews, 0.95f, Random.Range(0.9f, 1.05f));
+                        if (round > 0) Sfx.Play(Sfx.Crunch, 0.45f, Random.Range(1.2f, 1.4f));
+                        StartCoroutine(JawPull(0.022f, 0.1f));
+                    }
+                    if (i == 3) Pop(lines[round][0], Mouth + new Vector2(faceSize.x * 0.55f, 90f), Color.white, 58);
                     if (i == 8) Pop(lines[round][1], Mouth + new Vector2(-faceSize.x * 0.55f, 40f), Color.white, 54);
-                    // la queue rentre, la mâchoire fait bouger le poisson
-                    fish.Fill = Mathf.Lerp(fills[round], fills[round + 1], k);
-                    frt.pivot = new Vector2(1f - fish.Fill, 0.5f);
-                    frt.anchoredPosition = mouthLocal + new Vector2(0f, (i % 2 == 0) ? -7f : 3f);
-                    frt.localRotation = Quaternion.Euler(0, 0, hang + Mathf.Sin(t * 9f + i) * 6f);
-                    fish.frequency = 9f - round * 1.5f;
-                    face.rectTransform.localScale = new Vector3(1f + (i % 2) * 0.01f, 1f - (i % 2) * 0.012f, 1f);
+                    face.rectTransform.anchoredPosition = headHome + new Vector2(0f, (chew[i] == 1 ? -6f : 2f));
+                    face.rectTransform.localScale = new Vector3(1f + (chew[i] == 1 ? 0.012f : 0f), 1f - (chew[i] == 1 ? 0.01f : 0f), 1f);
                     yield return new WaitForSeconds(0.11f);
                 }
                 face.rectTransform.localScale = Vector3.one;
-                // elle déglutit entre deux bouchées
+                face.rectTransform.anchoredPosition = headHome;
+                // elle déglutit entre deux bouchées, la tête secouée de dégoût
                 Sfx.PlayRandom(Sfx.Glous, 0.8f, Random.Range(0.95f, 1.05f));
-                SetView(round == 1 ? "nausee_2" : "degout_6");
-                yield return new WaitForSeconds(0.25f);
+                SetView(round == 1 ? "nausee_2" : "nausee_1");
+                for (float e = 0f; e < 0.3f; e += Time.deltaTime)
+                {
+                    face.rectTransform.anchoredPosition = headHome + new Vector2(Mathf.Sin(e * 60f) * 5f, 0f);
+                    yield return null;
+                }
+                face.rectTransform.anchoredPosition = headHome;
             }
 
-            // 3. elle aspire la queue comme un spaghetti
+            // 3. elle aspire la queue comme un spaghetti : la queue fouette dans tous les sens
             SetView("mache_5");
             Sfx.Play(Sfx.Slurp, 1f, 1f);
-            fish.frequency = 14f;
-            fish.amplitude = 0.42f;
+            fish.fps = ArtGross.Fishes[fishType].fps * 2.4f;
+            fish.amplitude = 0.16f;
+            fish.frequency = 16f;
             Pop("SLUUURP !", Mouth + new Vector2(faceSize.x * 0.5f, 120f), new Color(1f, 0.85f, 0.4f), 80);
-            float f0 = fish.Fill;
-            for (float e = 0f; e < 0.45f; e += Time.deltaTime)
+            float a0 = mouthAlong;
+            for (float e = 0f; e < 0.5f; e += Time.deltaTime)
             {
-                float k = e / 0.45f;
-                fish.Fill = Mathf.Lerp(f0, 0f, k * k);
-                frt.pivot = new Vector2(1f - fish.Fill, 0.5f);
-                frt.localRotation = Quaternion.Euler(0, 0, hang + Mathf.Sin(e * 50f) * 14f * (1f - k));
+                float k = e / 0.5f;
+                mouthAlong = Mathf.Lerp(a0, 1.08f, k * k);
+                chewOfs = new Vector2(Mathf.Sin(e * 70f) * 4f * (1f - k), 0f);
                 yield return null;
             }
+            inMouth = false;
             fish.gameObject.SetActive(false);
+            if (mouthClip != null) Destroy(mouthClip.gameObject);
             Sfx.PlayRandom(Sfx.Glous, 1f, 0.9f);
+            // la gorge : gloups
             SetView("mache_3");
-            face.rectTransform.localScale = new Vector3(1.01f, 0.985f, 1f);
-            yield return new WaitForSeconds(0.25f);
+            for (float e = 0f; e < 0.3f; e += Time.deltaTime)
+            {
+                float k = e / 0.3f;
+                face.rectTransform.localScale = new Vector3(1f + 0.015f * Mathf.Sin(k * Mathf.PI), 1f - 0.012f * Mathf.Sin(k * Mathf.PI), 1f);
+                yield return null;
+            }
             face.rectTransform.localScale = Vector3.one;
             SetView("nausee_1");
-            yield return new WaitForSeconds(0.4f);
+            yield return new WaitForSeconds(0.45f);
 
-            // 4. il reste quelque chose… elle recrache l'arête
+            // 4. il reste quelque chose… les joues se gonflent et elle recrache l'arête
             SetView("mache_6");
-            yield return new WaitForSeconds(0.25f);
+            yield return new WaitForSeconds(0.22f);
             SetView("mache_7");
             yield return new WaitForSeconds(0.2f);
+            SetView("mache_5");
+            yield return new WaitForSeconds(0.15f);
             SetView("nausee_8");
-            face.rectTransform.anchoredPosition = headHome + new Vector2(-14f, 6f);
+            for (float e = 0f; e < 0.08f; e += Time.deltaTime)
+            {
+                face.rectTransform.anchoredPosition = headHome + new Vector2(18f * e / 0.08f, 6f);
+                yield return null;
+            }
             Sfx.Play(Sfx.Spit, 1f, 1f);
-            Pop("PTOU !", Mouth + new Vector2(-faceSize.x * 0.45f, 110f), Color.white, 96);
+            Pop("PTOU !", Mouth + new Vector2(faceSize.x * 0.5f, 110f), Color.white, 96);
             yield return SpitBone();
             face.rectTransform.anchoredPosition = headHome;
 
             // 5. l'arrière-goût : dégoût intense, haut-le-cœur
             Sfx.PlayRandom(Sfx.Beurks, 1f, 1.05f);
-            Pop("BEURK !!!", Mouth + new Vector2(faceSize.x * 0.45f, 160f), new Color(0.7f, 1f, 0.35f), 100);
+            Pop("BEURK !!!", Mouth + new Vector2(-faceSize.x * 0.45f, 160f), new Color(0.7f, 1f, 0.35f), 100);
             foreach (int f in Range(1, 10))
             {
                 SetView("nausee_" + f);
@@ -968,7 +1075,7 @@ namespace FannyIn2Trom
             var bone = UIKit.Image("Arete", Root, spr, new Vector2(len, len * spr.rect.height / spr.rect.width), Mouth);
             var rt = bone.rectTransform;
             Vector2 pos = Mouth;
-            Vector2 v = new Vector2(-950f, 720f);
+            Vector2 v = new Vector2(620f, 760f);
             float rot = -20f, spin = 620f;
             float ground = -Size.y * 0.43f;
             int bounces = 0;

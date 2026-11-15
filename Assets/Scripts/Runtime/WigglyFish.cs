@@ -24,6 +24,17 @@ namespace FannyIn2Trom
         public float Fill = 1f;
         /// <summary>Assombrit le poisson près de la coupure (quand il entre dans une bouche).</summary>
         public float cutShade = 0f;
+        /// <summary>Animation image par image (le poisson qui se tortille vraiment). Null = image fixe.</summary>
+        public Sprite[] frames;
+        /// <summary>Images par seconde de l'animation.</summary>
+        public float fps = 12f;
+        /// <summary>Espèce (pour la ligne médiane du corps dans FishData), -1 = inconnue.</summary>
+        public int species = -1;
+        /// <summary>Si &gt;= 0 : point d'attache le long du poisson (0 = tête, 1 = queue). Le pivot suit le corps
+        /// d'une image à l'autre, donc la main (ou la bouche) reste accrochée au même endroit du poisson.</summary>
+        public float holdAlong = -1f;
+        float frameClock;
+        public int Frame { get; private set; }
 
         const int Segments = 28;
         float time;
@@ -50,7 +61,29 @@ namespace FannyIn2Trom
         void Update()
         {
             time += Time.deltaTime;
+            if (frames != null && frames.Length > 1)
+            {
+                frameClock += Time.deltaTime * fps;
+                int f = (int)frameClock % frames.Length;
+                if (f != Frame || sprite != frames[f]) { Frame = f; sprite = frames[f]; SetMaterialDirty(); }
+            }
+            if (holdAlong >= 0f)
+            {
+                float y = species >= 0 && species < FishData.Centerline.Length ? FishData.CenterAt(species, Frame, holdAlong) : 0.5f;
+                var p = new Vector2(holdAlong, y);
+                if ((rectTransform.pivot - p).sqrMagnitude > 1e-8f) rectTransform.pivot = p;
+            }
             SetVerticesDirty();
+        }
+
+        /// <summary>Change la vitesse de l'animation sans à-coup.</summary>
+        public void SetFrames(Sprite[] f, float speed, int kind)
+        {
+            frames = f;
+            fps = speed;
+            species = kind;
+            frameClock = Random.Range(0f, f != null ? f.Length : 1f);
+            if (f != null && f.Length > 0) sprite = f[0];
         }
 
         protected override void OnPopulateMesh(VertexHelper vh)
