@@ -103,6 +103,21 @@ namespace FannyIn2Trom
         public static Sprite FannyVisageBeurk { get { return Load("fanny_visage_beurk", null); } }
         public static Sprite BgMetro { get { return Load("bg_metro", MakeMetroWall); } }
         public static Sprite HandGrip { get { return Load("main_barre", MakeHandGrip); } }
+        /// <summary>Uniquement les doigts de main_barre : posés par-dessus un objet tenu, ils donnent l'impression que la main le serre.</summary>
+        public static Sprite HandFingers { get { return Load("main_doigts", null); } }
+        /// <summary>La main sans le bout des doigts (main_barre moins main_doigts) : en la superposant
+        /// aux doigts avec un objet entre les deux, on obtient une main qui SERRE l'objet.</summary>
+        public static Sprite HandPalm { get { return Load("main_paume", null); } }
+        /// <summary>Même main, avec la manche qui s'efface vite (pour ne pas cacher le visage).</summary>
+        public static Sprite HandPalmShort { get { return Load("main_paume_courte", null); } }
+        /// <summary>Point de prise d'un poisson dans main_barre (milieu des doigts, sur la ligne des phalanges).</summary>
+        public static readonly Vector2 FishGripPivot = new Vector2(0.9098f, 0.9301f);
+        /// <summary>Angle (degrés) de l'axe du poisson tenu, dans le repère de l'image de la main.</summary>
+        public const float FishGripAngle = 20.7f;
+        /// <summary>Direction (degrés) de l'avant-bras, de la main vers l'épaule, dans l'image.</summary>
+        public const float ArmAngleInImage = 226.4f;
+        /// <summary>Arête de poisson recrachée.</summary>
+        public static Sprite FishBone { get { return Load("arete", null); } }
         public static Sprite HandOpen { get { return Load("main_ouverte", MakeHandOpen); } }
 
         /// <summary>Vrai si bg_metro est l'image provisoire (fenêtres transparentes + tunnel animé).</summary>

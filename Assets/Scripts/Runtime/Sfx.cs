@@ -32,7 +32,7 @@ namespace FannyIn2Trom
         public static AudioClip[] Slaps, Taunts;
         public static AudioClip Bell, Swoosh, VoiceKO;
         /// <summary>Pêche dans le vivier.</summary>
-        public static AudioClip Plouf, Bubbles, SplashOut;
+        public static AudioClip Plouf, Bubbles, SplashOut, Spit, BoneDrop;
         public static AudioClip[] Burps;
         /// <summary>Voix de l'annonceur.</summary>
         public static AudioClip Voice3, Voice2, Voice1, VoiceGo, VoiceGameOver, VoiceRecord, VoiceLevel;
@@ -155,6 +155,8 @@ namespace FannyIn2Trom
             Plouf = Load("plouf") ?? Splash;
             Bubbles = Load("bulles");
             SplashOut = Load("sortie_eau") ?? Splash;
+            Spit = Load("crache") ?? Squish;
+            BoneDrop = Load("arete_tombe") ?? Click;
             Voice3 = Load("voix_3"); Voice2 = Load("voix_2"); Voice1 = Load("voix_1"); VoiceGo = Load("voix_go");
             VoiceGameOver = Load("voix_gameover"); VoiceRecord = Load("voix_record"); VoiceLevel = Load("voix_niveau");
         }

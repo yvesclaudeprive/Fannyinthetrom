@@ -23,6 +23,7 @@ Aucune attribution n'est obligatoire ; elle est donnée ici par courtoisie.
 | `chasse` (chasse d'eau) | OpenGameArt : 40 CC0 Water/Splash/Slime SFX | — | CC0 |
 | `musique_ascenseur` | Air original façon bossa d'ascenseur (FluidR3 GM : piano électrique, vibraphone, basse) | — | Composition originale |
 | `gifle_1..3` (montage gifle mouillée), `cloche` (cloche de boxe), `swoosh` | OpenGameArt Wet Squish + Kenney Impact Sounds (punch, bell) + OpenGameArt Swishes | — | CC0 |
+| `crache` (Marine recrache l'arête, toux accélérée), `arete_tombe` | OpenGameArt : 80 CC0 Creature SFX (cough) + Kenney : Impact Sounds (plate light) | — | CC0 |
 | `voix_ko`, `marine_nargue_1..3` | Synthèse vocale française (espeak-ng + MBROLA) | — | Générés pour le jeu |
 | `metro_ambiance` (montage) | OpenGameArt : 30 CC0 SFX Loops + Kenney Impact Sounds | — | CC0 |
 | `musique_bretagne` | Air original composé pour le jeu (style an-dro), joué avec la banque de sons FluidR3 GM (bombarde, cornemuse, caisse claire, grosse caisse), avec le refrain traditionnel « Ils ont des chapeaux ronds, vive la Bretagne ! » chanté en chœur (synthèse vocale MBROLA fr1/fr4 accordée sur une mélodie originale) | — | Libre : paroles traditionnelles (domaine public), mélodie et arrangement originaux, banque FluidR3 sous licence MIT |

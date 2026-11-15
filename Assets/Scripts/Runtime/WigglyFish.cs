@@ -22,6 +22,8 @@ namespace FannyIn2Trom
         public bool freeHead = true;
         /// <summary>Part visible du poisson depuis la queue (1 = entier). Sert quand Marine le mange.</summary>
         public float Fill = 1f;
+        /// <summary>Assombrit le poisson près de la coupure (quand il entre dans une bouche).</summary>
+        public float cutShade = 0f;
 
         const int Segments = 28;
         float time;
@@ -65,12 +67,19 @@ namespace FannyIn2Trom
                 float t = Mathf.Lerp(start, 1f, i / (float)Segments);
                 float x = r.xMin + t * r.width;
                 // l'amplitude grandit vers l'extrémité libre
-                float free = freeHead ? (1f - t) : t;
+                float span = Mathf.Max(0.0001f, 1f - start);
+                float free = freeHead ? (1f - t) / span : (t - start) / span;   // 0 au point tenu, 1 au bout libre
                 float amp = amplitude * r.height * Mathf.Pow(free, 1.4f);
                 float off = Mathf.Sin(2f * Mathf.PI * (t * waves - time * frequency)) * amp;
                 float u = Mathf.Lerp(uv.x, uv.z, t);
-                vh.AddVert(new Vector3(x, r.yMin + off), c, new Vector2(u, uv.y));
-                vh.AddVert(new Vector3(x, r.yMax + off), c, new Vector2(u, uv.w));
+                Color32 cc = c;
+                if (cutShade > 0f && start > 0f)
+                {
+                    float sh = cutShade * (1f - Mathf.Clamp01((t - start) / (0.14f * span)));
+                    cc = Color32.Lerp(c, new Color32(60, 25, 25, c.a), sh);
+                }
+                vh.AddVert(new Vector3(x, r.yMin + off), cc, new Vector2(u, uv.y));
+                vh.AddVert(new Vector3(x, r.yMax + off), cc, new Vector2(u, uv.w));
                 if (i > 0)
                 {
                     vh.AddTriangle(idx - 2, idx - 1, idx + 1);
