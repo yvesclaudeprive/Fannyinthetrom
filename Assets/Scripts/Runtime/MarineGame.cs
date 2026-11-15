@@ -25,7 +25,8 @@ namespace FannyIn2Trom
         bool choosing = true, ko;
         int fishType;
         float weight;
-        Image face, fish, energyFill;
+        Image face, energyFill;
+        WigglyFish fish;
         Text energyText;
         Vector2 headHome, headOffset, faceSize;
         float headRot, energy = 1f;
@@ -38,7 +39,7 @@ namespace FannyIn2Trom
         float shakeLeft;
 
         // --- pêche dans le vivier
-        class Swimmer { public int type; public Image img; public Vector2 pos; public float dir, speed, baseY, phase, flee; public Vector2 size; }
+        class Swimmer { public int type; public WigglyFish img; public Vector2 pos; public float dir, speed, baseY, phase, flee; public Vector2 size; }
         RectTransform fishing;
         RawImage caust1, caust2, surface;
         readonly List<Swimmer> swimmers = new List<Swimmer>();
@@ -164,7 +165,12 @@ namespace FannyIn2Trom
             sw.dir = Random.value < 0.5f ? -1f : 1f;
             sw.speed = speeds[type] * Random.Range(0.85f, 1.15f);
             sw.phase = Random.Range(0f, 10f);
-            sw.img = UIKit.Image("Poisson" + index, fishing, spr, sw.size, sw.pos);
+            sw.img = WigglyFish.Create("Poisson" + index, fishing, spr, sw.size, sw.pos);
+            // en nageant, c'est la queue qui bat (plus vite pour les petits)
+            sw.img.freeHead = false;
+            sw.img.amplitude = 0.14f;
+            sw.img.frequency = new[] { 4.5f, 3.2f, 2.4f, 1.8f }[type];
+            sw.img.waves = 1.0f;
             // un peu bleuté par l'eau, plus sombre au fond
             float depth = Mathf.InverseLerp(Size.y * 0.3f, -Size.y * 0.3f, sw.baseY);
             sw.img.color = Color.Lerp(new Color(0.92f, 0.98f, 1f), new Color(0.62f, 0.78f, 0.88f), depth);
@@ -267,6 +273,8 @@ namespace FannyIn2Trom
             Sfx.Vibrate();
             Pop("ATTRAPÉ !", target.pos + new Vector2(0f, 160f), new Color(1f, 0.85f, 0.25f), 90);
             var fishRt = target.img.rectTransform;
+            target.img.amplitude = 0.3f;
+            target.img.frequency = 9f;
             Vector2 grabPoint = hand.anchoredPosition;
             for (float e = 0f; e < 0.6f; e += Time.deltaTime)
             {
@@ -303,7 +311,12 @@ namespace FannyIn2Trom
             var spr = ArtGross.Fish(type);
             fishLen = Size.y * (0.42f + 0.06f * weight);
             float fishH = fishLen * spr.rect.height / spr.rect.width;
-            fish = UIKit.Image("Poisson", Root, spr, new Vector2(fishLen, fishH), Vector2.zero);
+            fish = WigglyFish.Create("Poisson", Root, spr, new Vector2(fishLen, fishH), Vector2.zero);
+            // tenu par la queue, il frétille de toutes ses forces
+            fish.freeHead = true;
+            fish.amplitude = 0.32f;
+            fish.frequency = 6.5f;
+            fish.waves = 0.9f;
             fish.rectTransform.pivot = new Vector2(0.985f, 0.5f);   // tenu par la queue
             anchor = prevAnchor = new Vector2(-Size.x * 0.3f, Size.y * 0.25f);
             PauseTimer = false;
@@ -604,10 +617,7 @@ namespace FannyIn2Trom
             SetView("degout_1");
             viewLeft = 0f;
             Pop("Maintenant, fais-lui manger le poisson !", new Vector2(0f, Size.y * 0.36f), new Color(1f, 0.85f, 0.25f), 64);
-            fish.type = Image.Type.Filled;
-            fish.fillMethod = Image.FillMethod.Horizontal;
-            fish.fillOrigin = (int)Image.OriginHorizontal.Right;   // on garde la queue, la tête disparaît bouchée après bouchée
-            fish.fillAmount = 1f;
+            fish.Fill = 1f;                                       // on garde la queue, la tête disparaît bouchée après bouchée
             omega *= 0.3f;
             eatPhase = true;
             while (bites < 3) yield return null;
@@ -630,7 +640,7 @@ namespace FannyIn2Trom
         void EatTick(Vector2 dir)
         {
             if (biting) return;
-            Vector2 tip = anchor + dir * fishLen * fish.fillAmount;   // la tête du poisson
+            Vector2 tip = anchor + dir * fishLen * fish.Fill;   // la tête du poisson
             float d = Vector2.Distance(tip, Mouth);
             // plus le poisson approche, plus elle fait la grimace
             if (viewLeft <= 0f)
@@ -649,7 +659,7 @@ namespace FannyIn2Trom
             Sfx.Vibrate();
             string[] mots = { "CROC !", "SCRUNCH !", "CRAAC !" };
             Pop(mots[bites % mots.Length], Mouth + new Vector2(-faceSize.x * 0.45f, 120f), new Color(1f, 0.5f, 0.4f), 96);
-            fish.fillAmount = Mathf.Max(0f, fish.fillAmount - 0.32f);
+            fish.Fill = Mathf.Max(0f, fish.Fill - 0.32f);
             anchor += new Vector2(0f, -140f);                      // le poisson est arraché de sa bouche
             omega += Random.Range(-3f, 3f);
             yield return new WaitForSeconds(0.15f);
