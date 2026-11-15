@@ -28,6 +28,9 @@ namespace FannyIn2Trom
         /// <summary>Épreuves souris / frotti : roucoulement, chasse d'eau, croc, slurp, musique d'ascenseur.</summary>
         public static AudioClip Coo, Flush, Crunch, Slurp, MusicAscenseur;
         public static AudioClip[] Squeaks, Chews;
+        /// <summary>Épreuve de Marine : gifles au poisson, cloche de boxe, "K.O. !", moqueries.</summary>
+        public static AudioClip[] Slaps, Taunts;
+        public static AudioClip Bell, Swoosh, VoiceKO;
         public static AudioClip[] Burps;
         /// <summary>Voix de l'annonceur.</summary>
         public static AudioClip Voice3, Voice2, Voice1, VoiceGo, VoiceGameOver, VoiceRecord, VoiceLevel;
@@ -142,6 +145,11 @@ namespace FannyIn2Trom
             MusicAscenseur = Load("musique_ascenseur");
             Squeaks = Variants("couic", Yelp);
             Chews = Variants("mache", Squish);
+            Slaps = Variants("gifle", Squish);
+            Taunts = Variants("marine_nargue", null);
+            Bell = Load("cloche") ?? Chime;
+            Swoosh = Load("swoosh") ?? Whoosh;
+            VoiceKO = Load("voix_ko");
             Voice3 = Load("voix_3"); Voice2 = Load("voix_2"); Voice1 = Load("voix_1"); VoiceGo = Load("voix_go");
             VoiceGameOver = Load("voix_gameover"); VoiceRecord = Load("voix_record"); VoiceLevel = Load("voix_niveau");
         }

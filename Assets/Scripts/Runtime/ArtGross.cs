@@ -145,6 +145,117 @@ namespace FannyIn2Trom
             return p.ToSprite("queue_souris");
         }
 
+        // =============================================================== poissons
+
+        public struct FishInfo { public string name, desc; public float weight; }
+
+        public static readonly FishInfo[] Fishes =
+        {
+            new FishInfo { name = "La sardine", desc = "Légère et rapide", weight = 0.6f },
+            new FishInfo { name = "Le maquereau", desc = "Le classique", weight = 1.0f },
+            new FishInfo { name = "Le saumon", desc = "Lourd et visqueux", weight = 1.5f },
+            new FishInfo { name = "La morue", desc = "Énorme, ça va faire mal", weight = 2.1f },
+        };
+
+        /// <summary>Poisson de profil, tête à gauche, queue à droite (on le tient par la queue).</summary>
+        public static Sprite Fish(int type) { return Get("poisson_" + (type + 1), () => MakeFish(type)); }
+
+        static Sprite MakeFish(int type)
+        {
+            var p = new Painter(560, 220);
+            float[] lens = { 380, 440, 480, 500 };
+            float[] hs = { 70, 92, 118, 136 };
+            Color[] backs = { new Color(0.22f, 0.35f, 0.52f), new Color(0.10f, 0.38f, 0.40f), new Color(0.32f, 0.40f, 0.45f), new Color(0.42f, 0.38f, 0.24f) };
+            Color[] bellies = { new Color(0.86f, 0.89f, 0.92f), new Color(0.88f, 0.90f, 0.90f), new Color(0.93f, 0.86f, 0.86f), new Color(0.90f, 0.86f, 0.74f) };
+            float len = lens[type], h = hs[type];
+            Color back = backs[type], belly = bellies[type];
+            Color fin = Color.Lerp(back, new Color(0.6f, 0.6f, 0.6f), 0.4f); fin.a = 0.85f;
+            Color outline = Color.Lerp(back, Color.black, 0.55f);
+            float x0 = 560 - len - 30, cy = 110;
+            float bcx = x0 + len * 0.42f, brx = len * 0.43f, bry = h * 0.5f;
+            float tailBase = x0 + len * 0.86f;
+            var rnd = new System.Random(31 + type);
+
+            // nageoire caudale (fourchue)
+            p.Polygon(fin, new Vector2(tailBase - 6, cy), new Vector2(556, cy + h * 0.62f), new Vector2(520, cy));
+            p.Polygon(fin, new Vector2(tailBase - 6, cy), new Vector2(520, cy), new Vector2(556, cy - h * 0.62f));
+            // nageoires dorsale / anale
+            p.Polygon(fin, new Vector2(bcx - brx * 0.25f, cy + bry * 0.9f), new Vector2(bcx + brx * 0.05f, cy + bry * 1.55f), new Vector2(bcx + brx * 0.35f, cy + bry * 0.8f));
+            if (type >= 2) p.Polygon(fin, new Vector2(bcx + brx * 0.45f, cy + bry * 0.6f), new Vector2(bcx + brx * 0.6f, cy + bry * 1.05f), new Vector2(bcx + brx * 0.75f, cy + bry * 0.4f));
+            p.Polygon(fin, new Vector2(bcx + brx * 0.35f, cy - bry * 0.75f), new Vector2(bcx + brx * 0.55f, cy - bry * 1.2f), new Vector2(bcx + brx * 0.7f, cy - bry * 0.55f));
+            // pédoncule + corps (contour, ventre, dos)
+            p.Polygon(outline, new Vector2(bcx + brx * 0.6f, cy + bry * 0.62f), new Vector2(tailBase + 4, cy + h * 0.17f), new Vector2(tailBase + 4, cy - h * 0.17f), new Vector2(bcx + brx * 0.6f, cy - bry * 0.62f));
+            p.Ellipse(bcx, cy, brx + 3, bry + 3, outline);
+            p.Polygon(belly, new Vector2(bcx + brx * 0.6f, cy + bry * 0.56f), new Vector2(tailBase, cy + h * 0.13f), new Vector2(tailBase, cy - h * 0.13f), new Vector2(bcx + brx * 0.6f, cy - bry * 0.56f));
+            p.Ellipse(bcx, cy, brx, bry, belly);
+            Color backA = back; backA.a = 0.92f;
+            p.Ellipse(bcx + 6, cy + bry * 0.32f, brx * 0.98f, bry * 0.72f, backA);
+            p.Polygon(backA, new Vector2(bcx + brx * 0.55f, cy + bry * 0.58f), new Vector2(tailBase, cy + h * 0.14f), new Vector2(tailBase, cy + h * 0.02f), new Vector2(bcx + brx * 0.55f, cy + bry * 0.05f));
+            // motifs selon l'espèce
+            if (type == 1)
+                for (int i = 0; i < 11; i++)
+                {
+                    float x = bcx - brx * 0.5f + i * brx * 0.13f;
+                    p.Line(x, cy + bry * 0.25f, x + 14 + rnd.Next(10), cy + bry * 0.85f, 6, new Color(0.03f, 0.12f, 0.14f, 0.85f));
+                }
+            if (type == 2)
+                for (int i = 0; i < 26; i++)
+                    p.Circle(bcx - brx * 0.4f + rnd.Next((int)(brx * 1.5f)), cy + rnd.Next((int)(bry * 0.85f)), 2.5f + rnd.Next(3), new Color(0.08f, 0.08f, 0.1f, 0.9f));
+            if (type == 2) p.Ellipse(bcx, cy - bry * 0.1f, brx * 0.85f, bry * 0.12f, new Color(0.95f, 0.65f, 0.65f, 0.35f));
+            if (type == 3)
+                for (int i = 0; i < 40; i++)
+                    p.Ellipse(bcx - brx * 0.7f + rnd.Next((int)(brx * 1.6f)), cy - bry * 0.1f + rnd.Next((int)(bry * 0.95f)), 4 + rnd.Next(7), 3 + rnd.Next(5), new Color(0.25f, 0.22f, 0.12f, 0.55f));
+            // écailles
+            for (int gx = 0; gx < 14; gx++)
+                for (int gy = -2; gy <= 2; gy++)
+                {
+                    float x = bcx - brx * 0.45f + gx * brx * 0.1f, y = cy + gy * bry * 0.3f + (gx % 2) * bry * 0.15f;
+                    float nx = (x - bcx) / brx, ny = (y - cy) / bry;
+                    if (nx * nx + ny * ny < 0.75f) p.Arc(x, y, bry * 0.16f, 1.5f, 100, 260, new Color(1f, 1f, 1f, 0.16f));
+                }
+            // ligne latérale, reflet mouillé
+            p.Line(bcx - brx * 0.6f, cy + bry * 0.12f, tailBase, cy + h * 0.02f, 2.5f, new Color(1f, 1f, 1f, 0.35f));
+            p.Ellipse(bcx - brx * 0.1f, cy + bry * 0.55f, brx * 0.6f, bry * 0.08f, new Color(1f, 1f, 1f, 0.35f));
+            // tête : opercule, bouche, nageoire pectorale, œil
+            float hx = x0 + len * 0.2f;
+            p.Arc(hx - bry * 0.5f, cy, bry * 0.85f, 4, -60, 60, outline); // opercule
+            p.Line(x0 + 4, cy - h * 0.06f, x0 + len * 0.07f, cy - h * 0.1f, 4, outline);
+            if (type == 3) p.Line(x0 + len * 0.05f, cy - bry * 0.55f, x0 + len * 0.06f, cy - bry * 0.85f, 3, outline); // barbillon
+            p.Polygon(fin, new Vector2(hx + 14, cy - bry * 0.1f), new Vector2(hx + len * 0.14f, cy - bry * 0.55f), new Vector2(hx + len * 0.1f, cy - bry * 0.05f));
+            float ex = x0 + len * 0.09f, ey = cy + h * 0.12f, er = h * 0.12f + 3;
+            p.Circle(ex, ey, er + 2, outline);
+            p.Circle(ex, ey, er, new Color(0.95f, 0.85f, 0.55f));
+            p.Circle(ex, ey, er * 0.62f, new Color(0.05f, 0.05f, 0.06f));
+            p.Circle(ex - er * 0.25f, ey + er * 0.3f, er * 0.22f, Color.white);
+            return p.ToSprite("poisson_" + type);
+        }
+
+        /// <summary>Étoile jaune (K.O., étourdie).</summary>
+        public static Sprite Star { get { return Get("etoile", MakeStar); } }
+
+        static Sprite MakeStar()
+        {
+            var p = new Painter(96, 96);
+            Color c = new Color(1f, 0.85f, 0.15f), o = new Color(0.7f, 0.45f, 0.05f);
+            var pts = new Vector2[10];
+            for (int i = 0; i < 10; i++)
+            {
+                float a = Mathf.PI / 2f + i * Mathf.PI / 5f;
+                float r = i % 2 == 0 ? 44f : 18f;
+                pts[i] = new Vector2(48 + Mathf.Cos(a) * r, 48 + Mathf.Sin(a) * r);
+            }
+            foreach (var col in new[] { o, c })
+            {
+                float k = col == o ? 1f : 0.86f;
+                var inner = new Vector2[5];
+                for (int i = 0; i < 5; i++) inner[i] = Vector2.Lerp(new Vector2(48, 48), pts[i * 2 + 1], k);
+                p.Polygon(col, inner);
+                for (int i = 0; i < 5; i++)
+                    p.Polygon(col, Vector2.Lerp(new Vector2(48, 48), pts[(i * 2 + 9) % 10], k), Vector2.Lerp(new Vector2(48, 48), pts[i * 2], k), Vector2.Lerp(new Vector2(48, 48), pts[i * 2 + 1], k));
+            }
+            return p.ToSprite("etoile");
+        }
+
         // ================================================================ pigeon
 
         /// <summary>Pigeon parisien (de profil, tourné vers la gauche). frame 1 = il roucoule.</summary>

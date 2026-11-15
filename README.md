@@ -12,6 +12,10 @@ Jeu iPhone réalisé avec **Unity**. Fanny est capturée au lasso en Bretagne, p
 
 Le jeu se joue entièrement **à l'horizontale**.
 
+**Deux personnages au choix sur l'écran titre :** Marine à gauche, Fanny à droite.
+- **Marine : « Coup de poisson ! »** On choisit un poisson (sardine, maquereau, saumon ou morue : plus il est lourd, plus il cogne, mais plus il est lent à lancer), on le tient par la queue, on le fait tournoyer et on le fait claquer sur la joue de Marine. Sa tête part sous le choc (vues de 3/4 et de profil), sa joue rougit, ça éclabousse, l'écran tremble. Elle esquive parfois et se moque (« Même pas mal ! »). Quand sa barre d'énergie est vide : la tête tourne, étoiles, cloche de boxe, **K.O. !**
+- **Fanny :** les 5 épreuves ci-dessous.
+
 Points : rapidité + lassos restants. Le meilleur score est enregistré sur le téléphone.
 
 ---
@@ -92,6 +96,7 @@ Toutes les images sont dans `Assets/Resources/Art/`. **Pour en changer une, il s
 | `fanny_visage_yeux_fermes`, `_bouche`, `_grimace_1`, `_beurk_bouche`, `_beurk_yeux_fermes` | Expressions animées : clignement, bouche qui s'ouvre quand elle crie, grimace légère puis franche | Fabriquées en déformant le visage |
 | `fanny_visage.png` | Gros plan du visage (épreuve 3, portrait dans l'épreuve 2) | Agrandi depuis la planche, donc un peu flou |
 | `bg_metro.jpg` | Rame de métro (épreuves 2 et 3). L'épreuve 2 fait un gros plan sur la grande barre | Ta scène métro |
+| `marine_face.png`, `marine_34_gauche/droite.png`, `marine_profil_gauche/droit.png`, `marine_surprise/inquiete/pensive/sourire/joie.png` | Marine : repos, tête qui tourne sous le coup, surprise, sonnée, moqueuse | Détourées depuis ta planche de visages |
 | `main_barre.png` | Bras + main qui glisse sur la barre | Détourée depuis ton gros plan, manche prolongée hors champ |
 | `fanny_visage_beurk.png` | Grimace : dès qu'on lui touche le visage, et à la fin | Fabriquée en déformant le visage (yeux plissés, bouche tordue, teint verdâtre) |
 
@@ -118,7 +123,8 @@ Assets/Scripts/Runtime/
   ChouchenGame.cs  épreuve 2 : le chouchen
   MouseGame.cs     épreuve 3 : la souris
   MetroBarGame.cs  épreuve 4 : que va-t-elle frotter ? (métro, ascenseur, toilettes, pigeon)
-  ArtGross.cs      dessins des souris, du pigeon, de l'ascenseur et des toilettes
+  ArtGross.cs      dessins des souris, du pigeon, de l'ascenseur, des toilettes et des poissons
+  MarineGame.cs    jeu de Marine : coup de poisson
   FaceRubGame.cs   épreuve 5 : sur le visage
   Art.cs           chargement des images + repères (position de la barre, de la main…)
   Painter.cs       dessin des visuels provisoires

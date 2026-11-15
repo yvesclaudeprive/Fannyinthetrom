@@ -57,6 +57,12 @@ namespace FannyIn2Trom
         public static Sprite VisageJoues { get { return Load("fanny_visage_joues", null); } }
         /// <summary>Bouche grande ouverte, pleine de vomi.</summary>
         public static Sprite VisageVomi { get { return Load("fanny_visage_vomi", null); } }
+        /// <summary>
+        /// Marine (2e personnage) : marine_face, marine_34_gauche, marine_34_droite, marine_profil_gauche,
+        /// marine_profil_droit, marine_surprise, marine_inquiete, marine_pensive, marine_sourire, marine_joie.
+        /// </summary>
+        public static Sprite Marine(string view) { return Load("marine_" + view, null); }
+
         /// <summary>Elle boit : yeux fermés, bouche ouverte.</summary>
         public static Sprite VisageBoit { get { return Load("fanny_visage_boit", null); } }
 

@@ -25,6 +25,7 @@ namespace FannyIn2Trom
         Hud hud;
 
         int score, lives, level;
+        bool playMarine;   // choix sur l'écran titre : Marine (à gauche) ou Fanny (à droite)
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         static void Boot()
@@ -197,7 +198,9 @@ namespace FannyIn2Trom
             hud.SetScore(score);
             hud.SetLives(lives);
 
-            var stages = new Type[] { typeof(LassoGame), typeof(ChouchenGame), typeof(MouseGame), typeof(MetroBarGame), typeof(FaceRubGame) };
+            var stages = playMarine
+                ? new Type[] { typeof(MarineGame) }
+                : new Type[] { typeof(LassoGame), typeof(ChouchenGame), typeof(MouseGame), typeof(MetroBarGame), typeof(FaceRubGame) };
             while (lives > 0)
             {
                 hud.SetLevel(level);
@@ -259,22 +262,35 @@ namespace FannyIn2Trom
             }
             UIKit.Panel("Voile", root, new Color(0.05f, 0.07f, 0.2f, 0.55f));
 
-            var fanny = UIKit.Image("Fanny", root, Art.FannyFace, UIKit.SizeForHeight(Art.FannyFace, 900), new Vector2(-size.x * 0.27f, -40));
-            var title = UIKit.Text("Titre", root, "FANNY IN 2 TROM", 150, new Color(1f, 0.85f, 0.2f), new Vector2(1300, 200), new Vector2(size.x * 0.12f, 260));
+            var title = UIKit.Text("Titre", root, "FANNY IN 2 TROM", 130, new Color(1f, 0.85f, 0.2f), new Vector2(1600, 170), new Vector2(0, size.y * 0.5f - 120f));
             title.GetComponent<Outline>().effectDistance = new Vector2(6, -6);
-            UIKit.Text("SousTitre", root, "Lasso breton, barre de métro\net microbes en folie !", 56, Color.white, new Vector2(1200, 160), new Vector2(size.x * 0.12f, 90));
+            UIKit.Text("Choisis", root, "Choisis ta victime !", 50, Color.white, new Vector2(1200, 80), new Vector2(0, size.y * 0.5f - 225f));
 
             bool go = false;
-            UIKit.Button("Jouer", root, "JOUER", new Vector2(460, 140), new Vector2(size.x * 0.12f, -110), new Color(0.9f, 0.25f, 0.3f), () => go = true);
+            // à gauche : Marine
+            float cx = size.x * 0.22f;
+            var marineSpr = Art.Marine("sourire") ?? Art.Marine("face");
+            var marine = UIKit.Image("Marine", root, marineSpr, UIKit.SizeForHeight(marineSpr, 470), new Vector2(-cx, -10));
+            UIKit.Text("NomMarine", root, "MARINE", 64, new Color(1f, 0.6f, 0.4f), new Vector2(600, 90), new Vector2(-cx, -270));
+            UIKit.Text("JeuMarine", root, "Coup de poisson !", 38, new Color(0.85f, 0.9f, 1f), new Vector2(600, 60), new Vector2(-cx, -330));
+            UIKit.Button("JouerMarine", root, "JOUER", new Vector2(360, 120), new Vector2(-cx, -430), new Color(0.15f, 0.45f, 0.85f), () => { playMarine = true; go = true; });
+            // à droite : Fanny
+            var fannySpr = Art.FannyVisage ?? Art.FannyFace;
+            var fanny = UIKit.Image("Fanny", root, fannySpr, UIKit.SizeForHeight(fannySpr, 470), new Vector2(cx, -10));
+            UIKit.Text("NomFanny", root, "FANNY", 64, new Color(1f, 0.85f, 0.3f), new Vector2(600, 90), new Vector2(cx, -270));
+            UIKit.Text("JeuFanny", root, "Lasso, chouchen, souris et microbes", 38, new Color(0.85f, 0.9f, 1f), new Vector2(700, 60), new Vector2(cx, -330));
+            UIKit.Button("JouerFanny", root, "JOUER", new Vector2(360, 120), new Vector2(cx, -430), new Color(0.9f, 0.25f, 0.3f), () => { playMarine = false; go = true; });
             int best = PlayerPrefs.GetInt(BestKey, 0);
-            UIKit.Text("Record", root, best > 0 ? "Record : " + best : "Touche JOUER pour commencer", 44, new Color(0.85f, 0.9f, 1f), new Vector2(1000, 80), new Vector2(size.x * 0.12f, -250));
+            if (best > 0) UIKit.Text("Record", root, "Record : " + best, 40, new Color(0.85f, 0.9f, 1f), new Vector2(800, 60), new Vector2(0, -size.y * 0.5f + 40f));
 
             float t = 0f;
             while (!go)
             {
                 t += Time.deltaTime;
-                fanny.rectTransform.anchoredPosition = new Vector2(-size.x * 0.27f, -40 + Mathf.Abs(Mathf.Sin(t * 3f)) * 25f);
+                fanny.rectTransform.anchoredPosition = new Vector2(cx, -10 + Mathf.Abs(Mathf.Sin(t * 3f)) * 18f);
+                marine.rectTransform.anchoredPosition = new Vector2(-cx, -10 + Mathf.Abs(Mathf.Sin(t * 3f + 1.5f)) * 18f);
                 fanny.rectTransform.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(t * 3f) * 2f);
+                marine.rectTransform.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(t * 3f + 1.5f) * 2f);
                 title.rectTransform.localScale = Vector3.one * (1f + Mathf.Sin(t * 2.2f) * 0.03f);
                 yield return null;
             }
