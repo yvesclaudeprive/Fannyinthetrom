@@ -63,6 +63,11 @@ namespace FannyIn2Trom
         /// </summary>
         public static Sprite Marine(string view) { return Load("marine_" + view, null); }
 
+        /// <summary>Vivier (eau vue de côté), caustiques (texture qui se répète) et surface de l'eau.</summary>
+        public static Sprite Vivier { get { return Load("bg_vivier", null); } }
+        public static Texture2D Caustiques { get { return Resources.Load<Texture2D>("Art/caustiques"); } }
+        public static Texture2D SurfaceEau { get { return Resources.Load<Texture2D>("Art/surface_eau"); } }
+
         /// <summary>Elle boit : yeux fermés, bouche ouverte.</summary>
         public static Sprite VisageBoit { get { return Load("fanny_visage_boit", null); } }
 

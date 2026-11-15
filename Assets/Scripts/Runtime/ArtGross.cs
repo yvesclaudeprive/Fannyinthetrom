@@ -230,6 +230,9 @@ namespace FannyIn2Trom
             return p.ToSprite("poisson_" + type);
         }
 
+        /// <summary>Anneau blanc (ronds dans l'eau).</summary>
+        public static Sprite Ring { get { return Get("anneau", () => { var p = new Painter(128, 128); p.Ring(64, 64, 56, 7, Color.white); return p.ToSprite("anneau"); }); } }
+
         /// <summary>Étoile jaune (K.O., étourdie).</summary>
         public static Sprite Star { get { return Get("etoile", MakeStar); } }
 

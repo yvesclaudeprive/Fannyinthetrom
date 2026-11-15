@@ -14,7 +14,7 @@ namespace FannyIn2Trom
     public class MarineGame : MiniGame
     {
         public override string Title { get { return "Coup de poisson !"; } }
-        public override string Instruction { get { return "Choisis ton poisson, fais-le tournoyer\net colle-lui une baffe sur la joue.\nVide sa barre d'énergie : K.O. !"; } }
+        public override string Instruction { get { return "Pêche ton poisson à la main dans le vivier,\npuis fais-le tournoyer et colle-lui une baffe.\nVide sa barre d'énergie : K.O. !"; } }
         protected override float BaseTimeLimit { get { return 25f; } }
 
         // Réglages
@@ -25,7 +25,6 @@ namespace FannyIn2Trom
         bool choosing = true, ko;
         int fishType;
         float weight;
-        RectTransform choiceRoot;
         Image face, fish, energyFill;
         Text energyText;
         Vector2 headHome, headOffset, faceSize;
@@ -37,6 +36,18 @@ namespace FannyIn2Trom
         float viewLeft;
         Vector2 shake;
         float shakeLeft;
+
+        // --- pêche dans le vivier
+        class Swimmer { public int type; public Image img; public Vector2 pos; public float dir, speed, baseY, phase, flee; public Vector2 size; }
+        RectTransform fishing;
+        RawImage caust1, caust2, surface;
+        readonly List<Swimmer> swimmers = new List<Swimmer>();
+        readonly List<RectTransform> bubbles = new List<RectTransform>();
+        RectTransform hand;
+        Vector2 handPos, handPrev;
+        float bubbleTimer, grabCooldown;
+        Text hoverText;
+        bool grabbing;
 
         protected override void Build()
         {
@@ -59,30 +70,219 @@ namespace FannyIn2Trom
             UIKit.Image("Coeur", bar.transform, Art.Heart, new Vector2(80, 80), new Vector2(-330f, 0f));
             energyText = UIKit.Text("Texte", bar.transform, "Marine : 100 %", 36, Color.white, new Vector2(600, 60), Vector2.zero);
 
-            // choix du poisson
+            // pêche du poisson dans le vivier
             PauseTimer = true;
-            choiceRoot = UIKit.Stretch(UIKit.Rect("Choix", Root));
-            UIKit.Panel("Fond", choiceRoot, new Color(0.03f, 0.05f, 0.1f, 0.85f));
-            UIKit.Text("Question", choiceRoot, "Choisis ton poisson !", 70, new Color(1f, 0.85f, 0.25f), new Vector2(Size.x - 80f, 100), new Vector2(0, Size.y * 0.5f - 140f));
-            float cardW = Mathf.Min(420f, (Size.x - 120f) / 4f - 20f);
-            for (int i = 0; i < ArtGross.Fishes.Length; i++)
-            {
-                int type = i;
-                var info = ArtGross.Fishes[i];
-                float x = (i - 1.5f) * (cardW + 24f);
-                var btn = UIKit.Button("Poisson" + i, choiceRoot, "", new Vector2(cardW, 470), new Vector2(x, -40f), new Color(0.1f, 0.2f, 0.32f, 0.95f), () => Pick(type));
-                var spr = ArtGross.Fish(i);
-                var img = UIKit.Image("Image", btn.transform, spr, UIKit.SizeForHeight(spr, 140), new Vector2(0, 90));
-                if (img.rectTransform.sizeDelta.x > cardW - 30f) img.rectTransform.sizeDelta *= (cardW - 30f) / img.rectTransform.sizeDelta.x;
-                UIKit.Text("Nom", btn.transform, info.name, 40, Color.white, new Vector2(cardW - 20f, 60), new Vector2(0, -40));
-                UIKit.Text("Desc", btn.transform, info.desc, 28, new Color(0.85f, 0.9f, 1f), new Vector2(cardW - 20f, 70), new Vector2(0, -105));
-                int stars = Mathf.Clamp(Mathf.RoundToInt(info.weight * 2f), 1, 5);
-                UIKit.Text("Force", btn.transform, "Puissance : " + new string('*', stars), 30, new Color(1f, 0.6f, 0.4f), new Vector2(cardW - 20f, 50), new Vector2(0, -175));
-            }
-            Sfx.PlayMusic(Sfx.MusicBretagne, 0.3f, this);
+            BuildFishing();
         }
 
         void OnDestroy() { Sfx.StopMusic(this); }
+
+        // ================================================================ pêche
+
+        void BuildFishing()
+        {
+            fishing = UIKit.Stretch(UIKit.Rect("Vivier", Root));
+            var bgSpr = Art.Vivier;
+            var bg = UIKit.Image("Eau", fishing, bgSpr, Size, Vector2.zero, bgSpr != null ? Color.white : new Color(0.1f, 0.35f, 0.5f));
+            if (bgSpr != null)
+            {
+                float sc = Mathf.Max(Size.x / bgSpr.rect.width, Size.y / bgSpr.rect.height);
+                bg.rectTransform.sizeDelta = new Vector2(bgSpr.rect.width, bgSpr.rect.height) * sc;
+            }
+            // reflets de lumière (caustiques) animés : deux couches qui défilent
+            var tex = Art.Caustiques;
+            if (tex != null)
+            {
+                tex.wrapMode = TextureWrapMode.Repeat;
+                caust1 = Caustic("Caustiques1", tex, 0.22f);
+                caust2 = Caustic("Caustiques2", tex, 0.16f);
+            }
+            // poissons qui nagent (du plus loin au plus près)
+            int[] types = { 3, 0, 1, 2, 0, 1 };
+            for (int i = 0; i < types.Length; i++) AddSwimmer(types[i], i);
+            // surface de l'eau
+            var stex = Art.SurfaceEau;
+            if (stex != null)
+            {
+                stex.wrapMode = TextureWrapMode.Repeat;
+                var rt = UIKit.Rect("Surface", fishing);
+                rt.anchorMin = new Vector2(0f, 1f); rt.anchorMax = new Vector2(1f, 1f); rt.pivot = new Vector2(0.5f, 1f);
+                rt.sizeDelta = new Vector2(0f, 150f); rt.anchoredPosition = Vector2.zero;
+                surface = rt.gameObject.AddComponent<RawImage>();
+                surface.texture = stex;
+                surface.raycastTarget = false;
+                surface.uvRect = new Rect(0f, 0f, Size.x / 1024f, 1f);
+            }
+            // la main (le bras plonge depuis la surface)
+            hand = UIKit.Rect("Main", fishing);
+            if (!Art.HandGripIsPlaceholder)
+            {
+                Sprite arm = Art.HandGrip;
+                float w = Art.HandWidthInBars * 95f;
+                var img = UIKit.Image("Bras", hand, arm, new Vector2(w, w * arm.rect.height / arm.rect.width), Vector2.zero);
+                img.rectTransform.pivot = Art.HandGripPivot;
+                img.rectTransform.localRotation = Quaternion.Euler(0, 0, 200f);
+            }
+            else UIKit.Image("Main", hand, Art.HandOpen, new Vector2(220, 275), Vector2.zero).rectTransform.localRotation = Quaternion.Euler(0, 0, 180f);
+            handPos = handPrev = new Vector2(0f, Size.y * 0.1f);
+            hand.anchoredPosition = handPos;
+
+            UIKit.Text("Consigne", fishing, "Plonge la main : appuie sur un poisson pour l'attraper !", 46, Color.white, new Vector2(Size.x - 100f, 70), new Vector2(0, -Size.y * 0.5f + 60f));
+            hoverText = UIKit.Text("Nom", fishing, "", 40, new Color(1f, 0.9f, 0.5f), new Vector2(700, 60), Vector2.zero);
+            Sfx.PlayMusic(Sfx.Bubbles, 0.6f, this);
+        }
+
+        RawImage Caustic(string name, Texture2D tex, float alpha)
+        {
+            var rt = UIKit.Stretch(UIKit.Rect(name, fishing));
+            var r = rt.gameObject.AddComponent<RawImage>();
+            r.texture = tex;
+            r.color = new Color(1f, 1f, 0.95f, alpha);
+            r.raycastTarget = false;
+            r.uvRect = new Rect(0f, 0f, Size.x / 700f, Size.y / 700f);
+            return r;
+        }
+
+        void AddSwimmer(int type, int index)
+        {
+            float[] lens = { 250f, 340f, 440f, 520f };
+            float[] speeds = { 380f, 280f, 190f, 130f };
+            var spr = ArtGross.Fish(type);
+            var sw = new Swimmer { type = type };
+            sw.size = new Vector2(lens[type], lens[type] * spr.rect.height / spr.rect.width);
+            sw.baseY = Mathf.Lerp(Size.y * 0.25f, -Size.y * 0.28f, (index + 0.5f) / 6f);
+            sw.pos = new Vector2(Random.Range(-Size.x * 0.4f, Size.x * 0.4f), sw.baseY);
+            sw.dir = Random.value < 0.5f ? -1f : 1f;
+            sw.speed = speeds[type] * Random.Range(0.85f, 1.15f);
+            sw.phase = Random.Range(0f, 10f);
+            sw.img = UIKit.Image("Poisson" + index, fishing, spr, sw.size, sw.pos);
+            // un peu bleuté par l'eau, plus sombre au fond
+            float depth = Mathf.InverseLerp(Size.y * 0.3f, -Size.y * 0.3f, sw.baseY);
+            sw.img.color = Color.Lerp(new Color(0.92f, 0.98f, 1f), new Color(0.62f, 0.78f, 0.88f), depth);
+            swimmers.Add(sw);
+        }
+
+        void UpdateFishing(float dt)
+        {
+            // eau qui bouge
+            if (caust1 != null)
+            {
+                var r1 = caust1.uvRect; r1.x += dt * 0.03f; r1.y += dt * 0.012f; caust1.uvRect = r1;
+                var r2 = caust2.uvRect; r2.x -= dt * 0.022f; r2.y += dt * 0.02f; caust2.uvRect = r2;
+            }
+            if (surface != null) { var r = surface.uvRect; r.x += dt * 0.05f; surface.uvRect = r; }
+
+            // bulles
+            bubbleTimer -= dt;
+            if (bubbleTimer <= 0f)
+            {
+                float sz = Random.Range(8f, 26f);
+                var b = UIKit.Image("Bulle", fishing, Art.Circle, new Vector2(sz, sz), new Vector2(Random.Range(-Size.x * 0.48f, Size.x * 0.48f), -Size.y * 0.42f), new Color(0.85f, 0.95f, 1f, 0.45f));
+                bubbles.Add(b.rectTransform);
+                bubbleTimer = Random.Range(0.08f, 0.3f);
+            }
+            for (int i = bubbles.Count - 1; i >= 0; i--)
+            {
+                var b = bubbles[i];
+                b.anchoredPosition += new Vector2(Mathf.Sin(t * 3f + i) * 25f * dt, (90f + b.sizeDelta.x * 6f) * dt);
+                if (b.anchoredPosition.y > Size.y * 0.45f) { Destroy(b.gameObject); bubbles.RemoveAt(i); }
+            }
+
+            // la main suit le doigt
+            if (!grabbing)
+            {
+                if (Pointer.Down) handPos = Pointer.Pos;
+                else if (Pointer.Held) handPos = Vector2.Lerp(handPos, Pointer.Pos, 1f - Mathf.Exp(-dt * 18f));
+                hand.anchoredPosition = handPos;
+            }
+            float handSpeed = (handPos - handPrev).magnitude / Mathf.Max(dt, 0.0001f);
+            handPrev = handPos;
+            grabCooldown -= dt;
+
+            // les poissons nagent, ondulent, fuient la main
+            Swimmer hover = null;
+            foreach (var sw in swimmers)
+            {
+                if (sw.img == null) continue;
+                float d = Vector2.Distance(sw.pos, handPos);
+                if (!grabbing && d < 260f && handSpeed > 600f && sw.flee <= 0f)
+                {
+                    sw.flee = 0.8f;                                   // coup de nageoire pour s'enfuir
+                    sw.dir = sw.pos.x > handPos.x ? 1f : -1f;
+                }
+                sw.flee -= dt;
+                float spd = sw.speed * (sw.flee > 0f ? 2.6f : 1f);
+                sw.phase += dt * spd / 60f;
+                sw.pos.x += sw.dir * spd * dt;
+                sw.pos.y = sw.baseY + Mathf.Sin(sw.phase * 0.35f) * 40f;
+                if (sw.pos.x > Size.x * 0.5f + sw.size.x * 0.3f) sw.dir = -1f;
+                if (sw.pos.x < -Size.x * 0.5f - sw.size.x * 0.3f) sw.dir = 1f;
+                sw.img.rectTransform.anchoredPosition = sw.pos;
+                // tête à gauche dans l'image : on retourne quand il nage vers la droite ; il ondule
+                sw.img.rectTransform.localScale = new Vector3(-sw.dir * (1f + Mathf.Sin(sw.phase * 2f) * 0.03f), 1f, 1f);
+                sw.img.rectTransform.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(sw.phase * 2f) * 4f);
+                if (Mathf.Abs(sw.pos.x - handPos.x) < sw.size.x * 0.45f && Mathf.Abs(sw.pos.y - handPos.y) < sw.size.y * 0.6f + 20f) hover = sw;
+            }
+            hoverText.text = hover != null ? ArtGross.Fishes[hover.type].name + " (" + ArtGross.Fishes[hover.type].desc + ")" : "";
+            hoverText.rectTransform.anchoredPosition = handPos + new Vector2(0f, -130f);
+
+            if (!grabbing && Pointer.Down && grabCooldown <= 0f) StartCoroutine(Grab(hover));
+        }
+
+        IEnumerator Grab(Swimmer target)
+        {
+            grabbing = true;
+            grabCooldown = 0.4f;
+            Sfx.Play(Sfx.Plouf, 0.9f, Random.Range(0.9f, 1.1f));
+            // ronds dans l'eau
+            var ring = UIKit.Image("Rond", fishing, ArtGross.Ring, new Vector2(60, 30), handPos, new Color(1f, 1f, 1f, 0.6f));
+            // la main plonge d'un coup
+            Vector2 start = handPos;
+            for (float e = 0f; e < 0.12f; e += Time.deltaTime)
+            {
+                hand.anchoredPosition = start + new Vector2(0f, -40f * (e / 0.12f));
+                ring.rectTransform.sizeDelta = new Vector2(60f + e * 1500f, 30f + e * 700f);
+                ring.color = new Color(1f, 1f, 1f, 0.6f * (1f - e / 0.12f));
+                yield return null;
+            }
+            Destroy(ring.gameObject);
+            if (target == null || Vector2.Distance(target.pos, hand.anchoredPosition) > target.size.x * 0.6f)
+            {
+                Pop("Raté !", handPos + new Vector2(0f, 120f), Color.white, 60);
+                hand.anchoredPosition = start;
+                grabbing = false;
+                yield break;
+            }
+            // attrapé ! le poisson se débat dans la main puis on le sort de l'eau
+            Sfx.Play(Sfx.Catch);
+            Sfx.Vibrate();
+            Pop("ATTRAPÉ !", target.pos + new Vector2(0f, 160f), new Color(1f, 0.85f, 0.25f), 90);
+            var fishRt = target.img.rectTransform;
+            Vector2 grabPoint = hand.anchoredPosition;
+            for (float e = 0f; e < 0.6f; e += Time.deltaTime)
+            {
+                fishRt.anchoredPosition = grabPoint + new Vector2(Mathf.Sin(e * 40f) * 15f, 0f);
+                fishRt.localRotation = Quaternion.Euler(0, 0, Mathf.Sin(e * 35f) * 25f);
+                yield return null;
+            }
+            Sfx.Play(Sfx.SplashOut);
+            for (float e = 0f; e < 0.5f; e += Time.deltaTime)
+            {
+                Vector2 up = new Vector2(0f, (Size.y * 0.9f) * (e / 0.5f) * (e / 0.5f));
+                hand.anchoredPosition = grabPoint + up;
+                fishRt.anchoredPosition = grabPoint + up + new Vector2(Mathf.Sin(e * 40f) * 15f, 0f);
+                fishRt.localRotation = Quaternion.Euler(0, 0, 90f + Mathf.Sin(e * 30f) * 20f);
+                yield return null;
+            }
+            Pop("Tu as pêché : " + ArtGross.Fishes[target.type].name.ToLower() + " !", new Vector2(0f, 0f), Color.white, 70);
+            yield return new WaitForSeconds(0.6f);
+            Sfx.StopMusic(this);
+            Destroy(fishing.gameObject);
+            swimmers.Clear();
+            bubbles.Clear();
+            Sfx.PlayMusic(Sfx.MusicBretagne, 0.3f, this);
+            Pick(target.type);
+        }
 
         void Pick(int type)
         {
@@ -90,7 +290,6 @@ namespace FannyIn2Trom
             choosing = false;
             fishType = type;
             weight = ArtGross.Fishes[type].weight;
-            Destroy(choiceRoot.gameObject);
 
             var spr = ArtGross.Fish(type);
             fishLen = Size.y * (0.42f + 0.06f * weight);
@@ -127,7 +326,8 @@ namespace FannyIn2Trom
             else shake = Vector2.zero;
             Root.anchoredPosition = shake;
 
-            if (choosing || fish == null || ko) return;
+            if (choosing) { UpdateFishing(dt); return; }
+            if (fish == null || ko) return;
 
             // --- la tête de Marine : léger balancement, esquives
             float amp = 0.5f + 0.5f * Difficulty;

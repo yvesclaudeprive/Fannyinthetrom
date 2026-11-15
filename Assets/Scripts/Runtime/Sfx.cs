@@ -31,6 +31,8 @@ namespace FannyIn2Trom
         /// <summary>Épreuve de Marine : gifles au poisson, cloche de boxe, "K.O. !", moqueries.</summary>
         public static AudioClip[] Slaps, Taunts;
         public static AudioClip Bell, Swoosh, VoiceKO;
+        /// <summary>Pêche dans le vivier.</summary>
+        public static AudioClip Plouf, Bubbles, SplashOut;
         public static AudioClip[] Burps;
         /// <summary>Voix de l'annonceur.</summary>
         public static AudioClip Voice3, Voice2, Voice1, VoiceGo, VoiceGameOver, VoiceRecord, VoiceLevel;
@@ -150,6 +152,9 @@ namespace FannyIn2Trom
             Bell = Load("cloche") ?? Chime;
             Swoosh = Load("swoosh") ?? Whoosh;
             VoiceKO = Load("voix_ko");
+            Plouf = Load("plouf") ?? Splash;
+            Bubbles = Load("bulles");
+            SplashOut = Load("sortie_eau") ?? Splash;
             Voice3 = Load("voix_3"); Voice2 = Load("voix_2"); Voice1 = Load("voix_1"); VoiceGo = Load("voix_go");
             VoiceGameOver = Load("voix_gameover"); VoiceRecord = Load("voix_record"); VoiceLevel = Load("voix_niveau");
         }
